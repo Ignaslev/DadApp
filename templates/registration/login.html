@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prisijungimas — Tekila IVS</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans',Arial,sans-serif;background:#f0f2f5;color:#1a1d23;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.wrap{width:100%;max-width:360px;padding:20px;}
+.logo{text-align:center;margin-bottom:24px;}
+.logo-icon{font-size:36px;display:block;margin-bottom:6px;}
+.logo-name{font-size:20px;font-weight:700;color:#217346;display:block;}
+.logo-sub{font-size:11px;color:#6b7280;margin-top:2px;display:block;}
+.card{background:#fff;border:1px solid #d0d4db;border-radius:4px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.card h2{font-size:14px;font-weight:700;color:#4b5563;margin-bottom:18px;text-transform:uppercase;letter-spacing:.4px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:600;color:#4b5563;margin-bottom:4px;}
+.field input{width:100%;background:#fff;border:1px solid #b0b6c0;border-radius:4px;color:#1a1d23;padding:7px 10px;font-size:13px;font-family:inherit;transition:border-color .12s;}
+.field input:focus{outline:none;border-color:#217346;box-shadow:0 0 0 2px rgba(33,115,70,.12);}
+.btn{width:100%;padding:9px;background:#217346;color:white;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s;margin-top:6px;}
+.btn:hover{background:#185a38;}
+.error{background:#fee2e2;border:1px solid #fca5a5;border-radius:4px;padding:9px 12px;font-size:12px;color:#991b1b;margin-bottom:14px;}
+.footer{text-align:center;margin-top:16px;font-size:11px;color:#9ca3af;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <span class="logo-icon">🏭</span>
+    <span class="logo-name">Tekila IVS</span>
+    <span class="logo-sub">Inventoriaus valdymo sistema</span>
+  </div>
+  <div class="card">
+    <h2>Prisijungimas</h2>
+    {% if form.errors %}
+    <div class="error">⚠️ Neteisingas vartotojo vardas arba slaptažodis.</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="field"><label>Vartotojo vardas</label><input type="text" name="username" autofocus autocomplete="username"></div>
+      <div class="field"><label>Slaptažodis</label><input type="password" name="password" autocomplete="current-password"></div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn">Prisijungti</button>
+    </form>
+  </div>
+  <div class="footer">© Tekila IVS — Inventoriaus valdymo sistema</div>
+</div>
+</body>
+</html>

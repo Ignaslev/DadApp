@@ -1,0 +1,47 @@
+{% extends "inventory/base.html" %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'client_list' %}">Klientai</a> <span class="sep">›</span> <strong>{{ client.name }}</strong>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'client_edit' client.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ client.name }}</h1><div class="subtitle">Kodas: {{ client.code }}</div></div>
+  <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ Nauja sąskaita</a>
+</div>
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><h2>Rekvizitai</h2></div>
+    <div class="detail-grid">
+      <div class="detail-row"><div class="detail-label">Šalis</div><div class="detail-value">{{ client.country|default:"—" }}</div></div>
+      <div class="detail-row"><div class="detail-label">Kodas</div><div class="detail-value font-mono fw-bold">{{ client.code }}</div></div>
+      <div class="detail-row"><div class="detail-label">PVM kodas</div><div class="detail-value font-mono">{{ client.vat_code|default:"—" }}</div></div>
+      <div class="detail-row"><div class="detail-label">Skola</div>
+        <div class="detail-value fw-bold {% if client.get_balance > 0 %}text-red{% else %}text-green{% endif %}">€{{ client.get_balance|floatformat:2 }}</div>
+      </div>
+      <div class="detail-row" style="grid-column:1/-1"><div class="detail-label">Adresas</div><div class="detail-value">{{ client.address|default:"—" }}</div></div>
+      <div class="detail-row" style="grid-column:1/-1"><div class="detail-label">Kontaktai</div><div class="detail-value">{{ client.contacts|default:"—" }}</div></div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header"><h2>Sąskaitų istorija</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Numeris</th><th>Data</th><th>Terminas</th><th>Būsena</th><th class="td-right">Suma</th><th class="td-right">Likutis</th></tr></thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{% url 'invoice_detail' inv.pk %}" class="td-mono fw-bold">{{ inv.number }}</a></td>
+          <td class="td-mono text-muted">{{ inv.date|date:"d.m.Y" }}</td>
+          <td class="td-mono text-muted">{{ inv.due_date|date:"d.m.Y"|default:"—" }}</td>
+          <td>{% if inv.status == 'PAID' %}<span class="badge badge-green">Apmokėta</span>{% elif inv.status == 'OVERDUE' %}<span class="badge badge-red">Vėluoja</span>{% elif inv.status == 'PARTIAL' %}<span class="badge badge-yellow">Dalinai</span>{% elif inv.status == 'ISSUED' %}<span class="badge badge-blue">Išrašyta</span>{% else %}<span class="badge badge-gray">{{ inv.status }}</span>{% endif %}</td>
+          <td class="td-right td-mono">€{{ inv.total_with_vat|floatformat:2 }}</td>
+          <td class="td-right td-mono fw-bold {% if inv.balance > 0 %}text-red{% endif %}">€{{ inv.balance|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><p>Šiam klientui sąskaitų nėra.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

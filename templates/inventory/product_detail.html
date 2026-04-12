@@ -1,0 +1,54 @@
+{% extends "inventory/base.html" %}
+{% block title %}{{ product.code }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'product_list' %}">Prekės</a> <span class="sep">›</span> <strong>{{ product.code }}</strong>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'product_edit' product.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ product.description1 }}</h1><div class="subtitle">Kodas: {{ product.code }}</div></div>
+  <a href="{% url 'purchase_create' %}" class="btn btn-primary">+ Registruoti pirkimą</a>
+</div>
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><h2>Sandėlio informacija</h2></div>
+    <div class="detail-grid">
+      <div class="detail-row">
+        <div class="detail-label">Likutis</div>
+        <div class="detail-value font-mono fw-bold" style="font-size:20px;{% if product.quantity <= 0 %}color:var(--red){% elif product.quantity < 10 %}color:var(--yellow){% else %}color:var(--green){% endif %}">
+          {{ product.quantity|floatformat:4 }} {{ product.unit }}
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Sandėlio vertė</div>
+        <div class="detail-value font-mono fw-bold" style="font-size:18px;color:var(--accent)">€{{ product.stock_value|floatformat:2 }}</div>
+      </div>
+      <div class="detail-row"><div class="detail-label">Vidutinė savikaina</div><div class="detail-value font-mono">€{{ product.avg_cost|floatformat:6 }}</div></div>
+      <div class="detail-row"><div class="detail-label">Pardavimo kaina</div><div class="detail-value font-mono">€{{ product.sale_price|floatformat:4 }}</div></div>
+      <div class="detail-row"><div class="detail-label">Tipas</div><div class="detail-value">{{ product.product_type }}</div></div>
+      <div class="detail-row"><div class="detail-label">Mat. vienetas</div><div class="detail-value">{{ product.unit }}</div></div>
+      <div class="detail-row"><div class="detail-label">Svoris (kg)</div><div class="detail-value font-mono">{{ product.weight_kg }}</div></div>
+      <div class="detail-row"><div class="detail-label">Atnaujinta</div><div class="detail-value text-muted" style="font-size:12px">{{ product.updated_at|date:"d.m.Y H:i" }}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Paskutiniai pirkimai</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sąskaita</th><th>Data</th><th>Tiekėjas</th><th class="td-right">Kiekis</th><th class="td-right">Kaina/vnt</th></tr></thead>
+        <tbody>
+          {% for pur in purchases %}
+          <tr>
+            <td class="td-mono">{{ pur.invoice_number }}</td>
+            <td class="text-muted td-mono">{{ pur.invoice_date|date:"d.m.Y" }}</td>
+            <td>{{ pur.supplier|truncatechars:20 }}</td>
+            <td class="td-right td-mono">{{ pur.quantity }}</td>
+            <td class="td-right td-mono">€{{ pur.unit_price|floatformat:4 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5"><div class="empty-state"><p>Pirkimų nėra.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

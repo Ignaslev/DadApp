@@ -1,0 +1,52 @@
+{% extends "inventory/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'purchase_list' %}">Pirkimai</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ title }}</h1></div></div>
+<div class="card" style="max-width:800px">
+  <div class="card-body">
+    <form method="post" id="purchaseForm">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="field"><label>Sąskaitos numeris *</label>{{ form.invoice_number }}</div>
+        <div class="field"><label>Tiekėjas *</label>{{ form.supplier }}</div>
+        <div class="field"><label>Sąskaitos data *</label>{{ form.invoice_date }}</div>
+        <div class="field"><label>Apmokėti iki</label>{{ form.due_date }}</div>
+        <div class="field"><label>Tipas</label>{{ form.purchase_type }}</div>
+        <div class="field"><label>Susieti su preke</label>{{ form.product }}</div>
+        <div class="field form-full"><label>Aprašymas *</label>{{ form.description }}</div>
+        <div class="field"><label>Mat. vienetas</label>{{ form.unit }}</div>
+        <div class="field"><label>Kiekis *</label>{{ form.quantity }}</div>
+        <div class="field"><label>Kaina/vnt (€, be PVM) *</label>{{ form.unit_price }}</div>
+        <div class="field"><label>PVM tarifas (%)</label>{{ form.vat_rate }}</div>
+        <div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-top:12px;display:flex;gap:28px;font-family:var(--mono);font-size:13px">
+        <div><span class="text-muted">Suma be PVM: </span><span id="previewExcl" class="fw-bold">€0.00</span></div>
+        <div><span class="text-muted">PVM: </span><span id="previewVat">€0.00</span></div>
+        <div><span class="text-muted">Iš viso su PVM: </span><span id="previewTotal" class="fw-bold text-green">€0.00</span></div>
+      </div>
+      <div class="alert alert-warning" style="margin-top:10px">⚠️ Išsaugojus pirkimą, automatiškai atsinaujins susietos prekės likutis ir vidutinė savikaina.</div>
+      <hr class="divider">
+      <div class="flex flex-gap">
+        <button type="submit" class="btn btn-primary">💾 Išsaugoti pirkimą</button>
+        <a href="{% url 'purchase_list' %}" class="btn btn-secondary">Atšaukti</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function update(){
+  const qty=parseFloat(document.querySelector('[name=quantity]').value)||0;
+  const price=parseFloat(document.querySelector('[name=unit_price]').value)||0;
+  const vat=parseFloat(document.querySelector('[name=vat_rate]').value)||0;
+  const excl=qty*price; const vatAmt=excl*(vat/100);
+  document.getElementById('previewExcl').textContent='€'+excl.toFixed(2);
+  document.getElementById('previewVat').textContent='€'+vatAmt.toFixed(2);
+  document.getElementById('previewTotal').textContent='€'+(excl+vatAmt).toFixed(2);
+}
+document.querySelectorAll('[name=quantity],[name=unit_price],[name=vat_rate]').forEach(el=>el.addEventListener('input',update));
+</script>
+{% endblock %}

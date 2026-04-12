@@ -1,0 +1,24 @@
+{% extends "inventory/base.html" %}
+{% block title %}Pirkimas {{ purchase.invoice_number }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'purchase_list' %}">Pirkimai</a> <span class="sep">›</span> <strong>{{ purchase.invoice_number }}</strong>{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ purchase.invoice_number }}</h1><div class="subtitle">Pirkimo įrašas</div></div></div>
+<div class="card" style="max-width:680px">
+  <div class="card-header"><h2>Detalės</h2></div>
+  <div class="detail-grid">
+    <div class="detail-row"><div class="detail-label">Tiekėjas</div><div class="detail-value">{{ purchase.supplier }}</div></div>
+    <div class="detail-row"><div class="detail-label">Tipas</div><div class="detail-value">{{ purchase.purchase_type }}</div></div>
+    <div class="detail-row"><div class="detail-label">Sąskaitos data</div><div class="detail-value font-mono">{{ purchase.invoice_date|date:"d.m.Y" }}</div></div>
+    <div class="detail-row"><div class="detail-label">Apmokėti iki</div><div class="detail-value font-mono">{{ purchase.due_date|date:"d.m.Y"|default:"—" }}</div></div>
+    <div class="detail-row" style="grid-column:1/-1"><div class="detail-label">Aprašymas</div><div class="detail-value">{{ purchase.description }}</div></div>
+    <div class="detail-row"><div class="detail-label">Prekė</div><div class="detail-value">{% if purchase.product %}<a href="{% url 'product_detail' purchase.product.pk %}">{{ purchase.product.code }}</a>{% else %}—{% endif %}</div></div>
+    <div class="detail-row"><div class="detail-label">Mat. vienetas</div><div class="detail-value">{{ purchase.unit }}</div></div>
+    <div class="detail-row"><div class="detail-label">Kiekis</div><div class="detail-value font-mono fw-bold">{{ purchase.quantity }}</div></div>
+    <div class="detail-row"><div class="detail-label">Kaina/vnt</div><div class="detail-value font-mono">€{{ purchase.unit_price|floatformat:6 }}</div></div>
+    <div class="detail-row"><div class="detail-label">PVM tarifas</div><div class="detail-value font-mono">{{ purchase.vat_rate }}%</div></div>
+    <div class="detail-row"><div class="detail-label">Suma be PVM</div><div class="detail-value font-mono">€{{ purchase.total_excl_vat|floatformat:2 }}</div></div>
+    <div class="detail-row"><div class="detail-label">PVM suma</div><div class="detail-value font-mono">€{{ purchase.vat_amount|floatformat:2 }}</div></div>
+    <div class="detail-row"><div class="detail-label">Iš viso su PVM</div><div class="detail-value font-mono fw-bold text-green" style="font-size:17px">€{{ purchase.total_incl_vat|floatformat:2 }}</div></div>
+  </div>
+</div>
+{% endblock %}

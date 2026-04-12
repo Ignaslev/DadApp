@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Arial', sans-serif; font-size: 11px; color: #1a1a2e; background: white; }
+  .page { padding: 30px 36px; max-width: 794px; margin: 0 auto; }
+
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #1a1a2e; }
+  .header-left .company { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-left .tagline { font-size: 10px; color: #64748b; margin-top: 2px; }
+  .header-right { text-align: right; }
+  .invoice-title { font-size: 22px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #1a1a2e; }
+  .invoice-number { font-size: 14px; font-weight: 600; color: #2563eb; margin-top: 4px; }
+  .invoice-date { font-size: 10px; color: #64748b; margin-top: 3px; }
+
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .party-box { background: #f8fafc; border-left: 3px solid #2563eb; padding: 12px 14px; }
+  .party-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 6px; }
+  .party-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .party-detail { font-size: 10px; color: #475569; line-height: 1.6; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  thead th { background: #1a1a2e; color: white; padding: 8px 10px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; text-align: left; }
+  thead th.right { text-align: right; }
+  tbody td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; font-size: 10px; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  .right { text-align: right; }
+  tfoot td { padding: 8px 10px; font-weight: 600; border-top: 2px solid #1a1a2e; }
+
+  .totals { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+  .totals-box { width: 260px; }
+  .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
+  .total-row.grand { font-size: 14px; font-weight: 700; border-top: 2px solid #1a1a2e; border-bottom: none; padding-top: 8px; color: #2563eb; }
+
+  .notes { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 12px; margin-bottom: 20px; font-size: 10px; color: #475569; }
+  .notes strong { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 4px; }
+
+  .footer { border-top: 1px solid #e2e8f0; padding-top: 14px; display: flex; justify-content: space-between; font-size: 9px; color: #94a3b8; }
+
+  .status-stamp { position: absolute; top: 120px; right: 40px; border: 3px solid #10b981; color: #10b981; font-size: 22px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; padding: 6px 14px; transform: rotate(-12deg); opacity: 0.4; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="page" style="position:relative">
+
+  {% if invoice.status == 'PAID' %}
+  <div class="status-stamp">PAID</div>
+  {% endif %}
+
+  <div class="header">
+    <div class="header-left">
+      <div class="company">{{ invoice.seller_name }}</div>
+      <div class="tagline">{{ invoice.seller_address }}</div>
+      <div class="tagline" style="margin-top:2px">{{ invoice.seller_email }}</div>
+    </div>
+    <div class="header-right">
+      <div class="invoice-title">
+        {% if invoice.invoice_type == 'ISANKSTINE' %}Proforma Invoice
+        {% elif invoice.invoice_type == 'BE_PVM' %}Invoice
+        {% else %}VAT Invoice{% endif %}
+      </div>
+      <div class="invoice-number">{{ invoice.number }}</div>
+      <div class="invoice-date">Date: {{ invoice.date|date:"d M Y" }}{% if invoice.due_date %} &nbsp;|&nbsp; Due: {{ invoice.due_date|date:"d M Y" }}{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="party-box">
+      <div class="party-label">Seller</div>
+      <div class="party-name">{{ invoice.seller_name }}</div>
+      <div class="party-detail">
+        {{ invoice.seller_address }}<br>
+        Company code: {{ invoice.seller_code }}<br>
+        VAT: {{ invoice.seller_vat }}<br>
+        Bank: {{ invoice.seller_bank }}<br>
+        {{ invoice.seller_email }}
+      </div>
+    </div>
+    <div class="party-box">
+      <div class="party-label">Buyer</div>
+      <div class="party-name">{{ invoice.client.name }}</div>
+      <div class="party-detail">
+        {{ invoice.client.address }}<br>
+        {% if invoice.client.code %}Company code: {{ invoice.client.code }}<br>{% endif %}
+        {% if invoice.client.vat_code %}VAT: {{ invoice.client.vat_code }}<br>{% endif %}
+        {% if invoice.client.contacts %}{{ invoice.client.contacts }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th>Description</th>
+        <th style="width:40px">Unit</th>
+        <th class="right" style="width:60px">Qty</th>
+        <th class="right" style="width:70px">Unit Price</th>
+        {% if invoice.invoice_type != 'BE_PVM' %}
+        <th class="right" style="width:50px">VAT %</th>
+        <th class="right" style="width:70px">VAT €</th>
+        {% endif %}
+        <th class="right" style="width:80px">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in invoice.lines.all %}
+      <tr>
+        <td>{{ line.line_number }}</td>
+        <td>{{ line.description }}</td>
+        <td>{{ line.unit }}</td>
+        <td class="right">{{ line.quantity }}</td>
+        <td class="right">€{{ line.unit_price|floatformat:4 }}</td>
+        {% if invoice.invoice_type != 'BE_PVM' %}
+        <td class="right">{{ line.vat_rate }}%</td>
+        <td class="right">€{{ line.vat_amount|floatformat:2 }}</td>
+        {% endif %}
+        <td class="right">€{{ line.line_total|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="totals-box">
+      <div class="total-row"><span>Subtotal (excl. VAT)</span><span>€{{ invoice.total_excl_vat|floatformat:2 }}</span></div>
+      {% if invoice.invoice_type != 'BE_PVM' %}
+      <div class="total-row"><span>VAT</span><span>€{{ invoice.total_vat|floatformat:2 }}</span></div>
+      {% endif %}
+      <div class="total-row grand"><span>TOTAL DUE</span><span>€{{ invoice.total_with_vat|floatformat:2 }}</span></div>
+    </div>
+  </div>
+
+  {% if invoice.notes %}
+  <div class="notes"><strong>Notes</strong>{{ invoice.notes }}</div>
+  {% endif %}
+
+  <div class="footer">
+    <div>{{ invoice.seller_name }} &nbsp;|&nbsp; {{ invoice.seller_code }} &nbsp;|&nbsp; {{ invoice.seller_vat }}</div>
+    <div>Generated {{ invoice.created_at|date:"d M Y" }}</div>
+  </div>
+</div>
+</body>
+</html>

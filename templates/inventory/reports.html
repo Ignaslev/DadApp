@@ -1,0 +1,169 @@
+{% extends "inventory/base.html" %}
+{% block title %}Ataskaitos{% endblock %}
+{% block breadcrumb %}<strong>Pardavimų ataskaitos</strong>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Pardavimų ataskaitos</h1><div class="subtitle">Metinė apžvalga</div></div>
+  <form method="get" style="display:flex;gap:8px;align-items:center">
+    <label style="font-size:13px;font-weight:600;color:var(--text-dim)">Metai:</label>
+    <select name="year" onchange="this.form.submit()" style="background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:5px 10px;font-size:13px">
+      {% for y in available_years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Summary stats -->
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+  <div class="stat-card green">
+    <div class="stat-label">Bendra apyvarta {{ year }}</div>
+    <div class="stat-value">€{{ total_revenue|floatformat:2 }}</div>
+    <div class="stat-sub">Be PVM</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">Savikaina {{ year }}</div>
+    <div class="stat-value">€{{ total_cost|floatformat:2 }}</div>
+    <div class="stat-sub">Prekių savikaina</div>
+  </div>
+  <div class="stat-card {% if total_profit > 0 %}green{% else %}red{% endif %}">
+    <div class="stat-label">Pelnas {{ year }}</div>
+    <div class="stat-value">€{{ total_profit|floatformat:2 }}</div>
+    <div class="stat-sub">Apyvarta - savikaina</div>
+  </div>
+</div>
+
+<!-- Monthly chart -->
+<div class="card">
+  <div class="card-header"><h2>Mėnesinė apyvarta ir pelnas — {{ year }}</h2></div>
+  <div class="card-body">
+    <canvas id="monthlyChart" height="90"></canvas>
+  </div>
+</div>
+
+<!-- Monthly table -->
+<div class="card">
+  <div class="card-header"><h2>Mėnesinė suvestinė</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mėnuo</th><th class="td-right">Apyvarta (€)</th><th class="td-right">Savikaina (€)</th><th class="td-right">Pelnas (€)</th><th class="td-right">Marža %</th></tr></thead>
+      <tbody>
+        {% for m in monthly_data %}
+        {% if m.revenue > 0 %}
+        <tr>
+          <td class="fw-bold">{{ m.month }}</td>
+          <td class="td-right td-mono">€{{ m.revenue|floatformat:2 }}</td>
+          <td class="td-right td-mono">€{{ m.cost|floatformat:2 }}</td>
+          <td class="td-right td-mono fw-bold {% if m.profit > 0 %}text-green{% else %}text-red{% endif %}">€{{ m.profit|floatformat:2 }}</td>
+          <td class="td-right td-mono">
+            {% if m.revenue > 0 %}
+              {% widthratio m.profit m.revenue 100 %}%
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="fw-bold">IŠ VISO</td>
+          <td class="td-right td-mono fw-bold">€{{ total_revenue|floatformat:2 }}</td>
+          <td class="td-right td-mono fw-bold">€{{ total_cost|floatformat:2 }}</td>
+          <td class="td-right td-mono fw-bold text-green">€{{ total_profit|floatformat:2 }}</td>
+          <td class="td-right td-mono">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="two-col">
+  <!-- Top clients -->
+  <div class="card">
+    <div class="card-header"><h2>Top 10 klientų pagal apyvartą</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Klientas</th><th class="td-right">Apyvarta (€)</th></tr></thead>
+        <tbody>
+          {% for name, revenue in top_clients %}
+          <tr>
+            <td class="td-mono text-muted">{{ forloop.counter }}</td>
+            <td>{{ name|truncatechars:40 }}</td>
+            <td class="td-right td-mono fw-bold">€{{ revenue|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3"><div class="empty-state"><p>Duomenų nėra.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top products -->
+  <div class="card">
+    <div class="card-header"><h2>Top 10 prekių pagal apyvartą</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Prekė</th><th class="td-right">Kiekis</th><th class="td-right">Apyvarta (€)</th></tr></thead>
+        <tbody>
+          {% for name, data in top_products %}
+          <tr>
+            <td class="td-mono text-muted">{{ forloop.counter }}</td>
+            <td>{{ name|truncatechars:32 }}</td>
+            <td class="td-right td-mono">{{ data.qty|floatformat:0 }}</td>
+            <td class="td-right td-mono fw-bold">€{{ data.revenue|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4"><div class="empty-state"><p>Duomenų nėra.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const data = {{ chart_data|safe }};
+const canvas = document.getElementById('monthlyChart');
+const ctx = canvas.getContext('2d');
+const W = canvas.offsetWidth, H = canvas.offsetHeight;
+canvas.width = W; canvas.height = H;
+const revenues = data.map(d=>d.revenue), profits = data.map(d=>d.profit);
+const maxVal = Math.max(...revenues, 1);
+const pad = {top:20,right:16,bottom:40,left:72};
+const cW = W-pad.left-pad.right, cH = H-pad.top-pad.bottom;
+ctx.clearRect(0,0,W,H);
+// Grid
+for(let i=0;i<=4;i++){
+  const y=pad.top+(cH/4)*i;
+  ctx.strokeStyle='#e5e7eb';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
+  ctx.fillStyle='#6b7280';ctx.font='11px Noto Sans';ctx.textAlign='right';
+  ctx.fillText('€'+Math.round(maxVal-(maxVal/4)*i).toLocaleString(),pad.left-5,y+4);
+}
+const barGroupW = cW/12;
+const barW = barGroupW*0.35;
+data.forEach((d,i)=>{
+  const x=pad.left+barGroupW*i;
+  // Revenue bar
+  const rH=(d.revenue/maxVal)*cH;
+  const ry=pad.top+cH-rH;
+  ctx.fillStyle='#217346';
+  ctx.beginPath();ctx.roundRect(x+barGroupW*0.05,ry,barW,rH,[2,2,0,0]);ctx.fill();
+  // Profit bar
+  const pH=Math.abs(d.profit/maxVal)*cH;
+  const py=d.profit>=0?pad.top+cH-pH:pad.top+cH;
+  ctx.fillStyle=d.profit>=0?'#86efac':'#fca5a5';
+  ctx.beginPath();ctx.roundRect(x+barGroupW*0.5,py,barW,pH,[2,2,0,0]);ctx.fill();
+  // Label
+  ctx.fillStyle='#6b7280';ctx.font='9px Noto Sans';ctx.textAlign='center';
+  ctx.fillText(d.month.substring(0,3),x+barGroupW/2,H-8);
+});
+// Legend
+ctx.fillStyle='#217346';ctx.fillRect(pad.left,6,12,10);
+ctx.fillStyle='#374151';ctx.font='11px Noto Sans';ctx.textAlign='left';
+ctx.fillText('Apyvarta',pad.left+16,16);
+ctx.fillStyle='#86efac';ctx.fillRect(pad.left+90,6,12,10);
+ctx.fillStyle='#374151';ctx.fillText('Pelnas',pad.left+106,16);
+</script>
+{% endblock %}

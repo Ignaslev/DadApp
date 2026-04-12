@@ -1,0 +1,28 @@
+{% extends "inventory/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block breadcrumb %}<a href="{% url 'client_list' %}">Klientai</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ title }}</h1></div></div>
+<div class="card" style="max-width:700px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-grid">
+        <div class="field"><label>Pavadinimas *</label>{{ form.name }}{% for e in form.name.errors %}<span style="color:var(--red);font-size:11px">{{ e }}</span>{% endfor %}</div>
+        <div class="field"><label>Kliento kodas *</label>{{ form.code }}{% for e in form.code.errors %}<span style="color:var(--red);font-size:11px">{{ e }}</span>{% endfor %}</div>
+        <div class="field"><label>Šalis</label>{{ form.country }}</div>
+        <div class="field"><label>Šalies kodas</label>{{ form.country_code }}</div>
+        <div class="field"><label>PVM mokėtojo kodas</label>{{ form.vat_code }}</div>
+        <div class="field form-full"><label>Adresas</label>{{ form.address }}</div>
+        <div class="field form-full"><label>Kontaktai</label>{{ form.contacts }}</div>
+        <div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>
+      </div>
+      <hr class="divider">
+      <div class="flex flex-gap">
+        <button type="submit" class="btn btn-primary">💾 Išsaugoti</button>
+        <a href="{% if client %}{% url 'client_detail' client.pk %}{% else %}{% url 'client_list' %}{% endif %}" class="btn btn-secondary">Atšaukti</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
