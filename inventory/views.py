@@ -1,6 +1,9 @@
 from decimal import Decimal
+import datetime
 import json
+import logging
 
+from django.utils.text import slugify
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -13,14 +16,17 @@ from django.utils import timezone
 
 from .forms import (
     ClientForm,
+    SupplierForm,
     InvoiceForm,
     InvoiceLineFormSet,
     PaymentForm,
     ProductForm,
     PurchaseForm,
 )
-from .models import Client, Invoice, Payment, Product, Purchase, Sale
+from .models import Client, Supplier, Invoice, Payment, Product, Purchase, Sale
 from .services import replace_invoice_lines, restock_invoice
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -41,14 +47,13 @@ def dashboard(request):
     overdue_count = invoices.filter(status='OVERDUE').count()
 
     recent_invoices = invoices.select_related('client')[:8]
-    recent_purchases = Purchase.objects.select_related('product').order_by('-created_at')[:5]
+    recent_purchases = Purchase.objects.select_related('product', 'supplier').order_by('-created_at')[:5]
     products = Product.objects.all()
     total_stock_value = sum(p.stock_value for p in products)
 
     chart_data = []
     for i in range(5, -1, -1):
         month_date = timezone.now().date().replace(day=1)
-        import datetime
         year = month_date.year
         month = month_date.month - i
         while month <= 0:
@@ -58,7 +63,7 @@ def dashboard(request):
         revenue = sum(inv.total_with_vat for inv in month_invoices)
         chart_data.append({
             'month': datetime.date(year, month, 1).strftime('%b %Y'),
-            'revenue': float(revenue)
+            'revenue': float(revenue),
         })
 
     context = {
@@ -121,6 +126,60 @@ def client_edit(request, pk):
 
 
 @login_required
+def supplier_list(request):
+    q = request.GET.get('q', '')
+    suppliers = Supplier.objects.all()
+    if q:
+        suppliers = suppliers.filter(
+            Q(name__icontains=q) | Q(code__icontains=q) | Q(country__icontains=q) | Q(vat_code__icontains=q)
+        )
+    return render(request, 'inventory/supplier_list.html', {'suppliers': suppliers, 'q': q})
+
+
+@login_required
+def supplier_detail(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    purchases = supplier.purchases.select_related('product').order_by('-invoice_date', '-id')[:50]
+    total_purchased = sum(p.total_incl_vat for p in supplier.purchases.all())
+    return render(request, 'inventory/supplier_detail.html', {
+        'supplier': supplier,
+        'purchases': purchases,
+        'total_purchased': total_purchased,
+    })
+
+
+@login_required
+def supplier_create(request):
+    if request.method == 'POST':
+        form = SupplierForm(request.POST)
+        if form.is_valid():
+            supplier = form.save()
+            messages.success(request, f'Supplier "{supplier.name}" created.')
+            return redirect('supplier_detail', pk=supplier.pk)
+    else:
+        form = SupplierForm()
+    return render(request, 'inventory/supplier_form.html', {'form': form, 'title': 'New Supplier'})
+
+
+@login_required
+def supplier_edit(request, pk):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    if request.method == 'POST':
+        form = SupplierForm(request.POST, instance=supplier)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Supplier updated.')
+            return redirect('supplier_detail', pk=supplier.pk)
+    else:
+        form = SupplierForm(instance=supplier)
+    return render(request, 'inventory/supplier_form.html', {
+        'form': form,
+        'title': f'Edit {supplier.name}',
+        'supplier': supplier,
+    })
+
+
+@login_required
 def product_list(request):
     q = request.GET.get('q', '')
     ptype = request.GET.get('type', '')
@@ -142,7 +201,7 @@ def product_list(request):
 @login_required
 def product_detail(request, pk):
     product = get_object_or_404(Product, pk=pk)
-    purchases = product.purchases.order_by('-invoice_date')[:10]
+    purchases = product.purchases.select_related('supplier').order_by('-invoice_date')[:10]
     return render(request, 'inventory/product_detail.html', {
         'product': product,
         'purchases': purchases,
@@ -183,10 +242,13 @@ def product_edit(request, pk):
 @login_required
 def purchase_list(request):
     q = request.GET.get('q', '')
-    purchases = Purchase.objects.select_related('product').order_by('-invoice_date', '-id')
+    purchases = Purchase.objects.select_related('product', 'supplier').order_by('-invoice_date', '-id')
     if q:
         purchases = purchases.filter(
-            Q(invoice_number__icontains=q) | Q(supplier__icontains=q) | Q(description__icontains=q)
+            Q(invoice_number__icontains=q)
+            | Q(supplier__name__icontains=q)
+            | Q(supplier__code__icontains=q)
+            | Q(description__icontains=q)
         )
     return render(request, 'inventory/purchase_list.html', {'purchases': purchases, 'q': q})
 
@@ -206,7 +268,7 @@ def purchase_create(request):
 
 @login_required
 def purchase_detail(request, pk):
-    purchase = get_object_or_404(Purchase, pk=pk)
+    purchase = get_object_or_404(Purchase.objects.select_related('supplier', 'product'), pk=pk)
     return render(request, 'inventory/purchase_detail.html', {'purchase': purchase})
 
 
@@ -293,15 +355,33 @@ def invoice_edit(request, pk):
 @login_required
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
-    html = render_to_string('inventory/invoice_pdf.html', {'invoice': invoice, 'request': request})
+    html = render_to_string(
+        'inventory/invoice_pdf.html',
+        {'invoice': invoice, 'request': request},
+    )
+
+    safe_number = slugify(invoice.number) or f"invoice-{invoice.pk}"
+    filename = f"{safe_number}.pdf"
+
     try:
         from weasyprint import HTML
-        pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+
+        pdf = HTML(
+            string=html,
+            base_url=request.build_absolute_uri('/'),
+        ).write_pdf()
+
         response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = f'filename="invoice_{invoice.number}.pdf"'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
+
     except ImportError:
-        messages.error(request, 'WeasyPrint not installed. Run: pip install weasyprint')
+        messages.error(request, 'WeasyPrint is not installed.')
+        return redirect('invoice_detail', pk=pk)
+
+    except Exception as exc:
+        logger.exception("Failed to generate PDF for invoice %s", invoice.pk)
+        messages.error(request, f'Nepavyko sugeneruoti PDF: {exc}')
         return redirect('invoice_detail', pk=pk)
 
 
@@ -327,16 +407,19 @@ def payment_list(request):
 
 @login_required
 def product_api(request):
-    code = request.GET.get('code', '')
+    code = request.GET.get('code', '').strip()
+
     try:
         p = Product.objects.get(code=code)
         return HttpResponse(json.dumps({
+            'code': p.code,
             'description': p.description1,
             'unit': p.unit,
             'price': float(p.sale_price),
             'cost': float(p.avg_cost),
             'quantity': float(p.quantity),
             'weight': float(p.weight_kg),
+            'package_code': p.package_code or '',
         }), content_type='application/json')
     except Product.DoesNotExist:
         return HttpResponse('{}', content_type='application/json')
@@ -344,7 +427,7 @@ def product_api(request):
 
 @login_required
 def reports(request):
-    year = int(request.GET.get('year', __import__('datetime').date.today().year))
+    year = int(request.GET.get('year', datetime.date.today().year))
     sales = Sale.objects.filter(date__year=year).select_related('product', 'client')
 
     monthly = {}
@@ -373,9 +456,9 @@ def reports(request):
             'profit': float(data['profit']),
         })
 
-    # Python aggregation is used because Sale.revenue/cost/profit are properties, not DB fields.
     client_totals = {}
     product_totals = {}
+    product_revenue_totals = {}
     total_revenue = Decimal(0)
     total_cost = Decimal(0)
     total_profit = Decimal(0)
@@ -386,6 +469,7 @@ def reports(request):
         client_totals[sale.client.name] = client_totals.get(sale.client.name, Decimal(0)) + sale.revenue
         if sale.product:
             product_totals[sale.product.code] = product_totals.get(sale.product.code, Decimal(0)) + sale.quantity
+            product_revenue_totals[sale.product.code] = product_revenue_totals.get(sale.product.code, Decimal(0)) + sale.revenue
 
     top_clients = sorted(
         ({'client__name': name, 'revenue': value} for name, value in client_totals.items()),
@@ -393,18 +477,24 @@ def reports(request):
         reverse=True,
     )[:10]
     top_products = sorted(
-        ({'product__code': code, 'quantity': value} for code, value in product_totals.items()),
-        key=lambda item: item['quantity'],
+        (
+            {'product__code': code, 'quantity': qty, 'revenue': product_revenue_totals.get(code, Decimal(0))}
+            for code, qty in product_totals.items()
+        ),
+        key=lambda item: item['revenue'],
         reverse=True,
     )[:10]
 
+    available_years = list(range(2020, datetime.date.today().year + 1))
+
     return render(request, 'inventory/reports.html', {
         'year': year,
+        'available_years': available_years,
         'monthly_data': monthly_data,
         'top_clients': top_clients,
         'top_products': top_products,
         'total_revenue': total_revenue,
         'total_cost': total_cost,
         'total_profit': total_profit,
-        'chart_data': chart_data,
+        'chart_data': json.dumps(chart_data),
     })

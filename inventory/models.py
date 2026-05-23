@@ -27,6 +27,28 @@ class Client(models.Model):
         return total - paid
 
 
+class Supplier(models.Model):
+    name = models.CharField(max_length=255)
+    country = models.CharField(max_length=100, blank=True)
+    country_code = models.CharField(max_length=10, blank=True)
+    code = models.CharField(max_length=50, unique=True)
+    vat_code = models.CharField(max_length=100, blank=True)
+    address = models.TextField(blank=True)
+    contacts = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def total_purchased(self):
+        return sum(p.total_incl_vat for p in self.purchases.all())
+
+
 class Product(models.Model):
     PRODUCT_TYPES = [
         ('Prekės', 'Goods'),
@@ -105,7 +127,7 @@ class Purchase(models.Model):
     invoice_number = models.CharField(max_length=100)
     invoice_date = models.DateField()
     due_date = models.DateField(null=True, blank=True)
-    supplier = models.CharField(max_length=255)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name='purchases')
     purchase_type = models.CharField(max_length=50, choices=PURCHASE_TYPES, default='Prekės')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='purchases', null=True, blank=True)
     description = models.CharField(max_length=255)
@@ -198,6 +220,10 @@ class Invoice(models.Model):
     @property
     def total_paid(self):
         return sum(p.amount for p in self.payments.all())
+
+    @property
+    def total_weight(self):
+        return sum(line.total_weight for line in self.lines.all())
 
     @property
     def balance(self):

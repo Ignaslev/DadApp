@@ -1,12 +1,16 @@
 {% extends "inventory/base.html" %}
 {% block title %}Pirkimas {{ purchase.invoice_number }}{% endblock %}
 {% block breadcrumb %}<a href="{% url 'purchase_list' %}">Pirkimai</a> <span class="sep">›</span> <strong>{{ purchase.invoice_number }}</strong>{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'supplier_detail' purchase.supplier.pk %}" class="btn btn-secondary btn-sm">Tiekėjas</a>
+{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>{{ purchase.invoice_number }}</h1><div class="subtitle">Pirkimo įrašas</div></div></div>
-<div class="card" style="max-width:680px">
+<div class="card" style="max-width:760px">
   <div class="card-header"><h2>Detalės</h2></div>
   <div class="detail-grid">
-    <div class="detail-row"><div class="detail-label">Tiekėjas</div><div class="detail-value">{{ purchase.supplier }}</div></div>
+    <div class="detail-row"><div class="detail-label">Tiekėjas</div><div class="detail-value"><a href="{% url 'supplier_detail' purchase.supplier.pk %}">{{ purchase.supplier.name }}</a></div></div>
+    <div class="detail-row"><div class="detail-label">Tiekėjo kodas</div><div class="detail-value font-mono">{{ purchase.supplier.code|default:"—" }}</div></div>
     <div class="detail-row"><div class="detail-label">Tipas</div><div class="detail-value">{{ purchase.purchase_type }}</div></div>
     <div class="detail-row"><div class="detail-label">Sąskaitos data</div><div class="detail-value font-mono">{{ purchase.invoice_date|date:"d.m.Y" }}</div></div>
     <div class="detail-row"><div class="detail-label">Apmokėti iki</div><div class="detail-value font-mono">{{ purchase.due_date|date:"d.m.Y"|default:"—" }}</div></div>

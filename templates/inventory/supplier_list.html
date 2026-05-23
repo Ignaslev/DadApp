@@ -1,0 +1,37 @@
+{% extends "inventory/base.html" %}
+{% block title %}Tiekėjai{% endblock %}
+{% block breadcrumb %}<strong>Tiekėjai</strong>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'supplier_create' %}" class="btn btn-primary btn-sm">+ Naujas tiekėjas</a>{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Tiekėjų sąrašas</h1><div class="subtitle">Iš viso: {{ suppliers.count }}</div></div>
+</div>
+<div class="search-bar">
+  <form method="get" style="display:flex;gap:8px;flex:1">
+    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal pavadinimą, kodą, šalį, PVM…">
+    <button type="submit" class="btn btn-secondary">Ieškoti</button>
+    {% if q %}<a href="{% url 'supplier_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}
+  </form>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kodas</th><th>Pavadinimas</th><th>Šalis</th><th>PVM kodas</th><th>Kontaktai</th><th></th></tr></thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td class="td-mono fw-bold">{{ s.code }}</td>
+          <td><a href="{% url 'supplier_detail' s.pk %}">{{ s.name }}</a></td>
+          <td>{{ s.country|default:"—" }}</td>
+          <td class="td-mono">{{ s.vat_code|default:"—" }}</td>
+          <td class="text-muted">{{ s.contacts|truncatechars:38 }}</td>
+          <td><a href="{% url 'supplier_edit' s.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🚚</div><p>Tiekėjų nėra. <a href="{% url 'supplier_create' %}">Pridėti pirmą tiekėją</a></p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

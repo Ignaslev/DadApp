@@ -1,11 +1,35 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Client, Product, Purchase, Invoice, InvoiceLine, Payment
+
+from .models import Client, Supplier, Product, Purchase, Invoice, InvoiceLine, Payment
+
+
+def client_choice_label(client):
+    return f"{client.name} — {client.code}" if client.code else client.name
+
+
+def supplier_choice_label(supplier):
+    return f"{supplier.name} — {supplier.code}" if supplier.code else supplier.name
+
+
+def product_choice_label(product):
+    return f"{product.code} — {product.description1}" if product.description1 else product.code
 
 
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
+        fields = ['name', 'country', 'country_code', 'code', 'vat_code', 'address', 'contacts', 'notes']
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 2}),
+            'contacts': forms.Textarea(attrs={'rows': 2}),
+            'notes': forms.Textarea(attrs={'rows': 2}),
+        }
+
+
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model = Supplier
         fields = ['name', 'country', 'country_code', 'code', 'vat_code', 'address', 'contacts', 'notes']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 2}),
@@ -37,8 +61,14 @@ class PurchaseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product'].queryset = Product.objects.all()
-        self.fields['product'].empty_label = '— Select product (optional) —'
+        self.fields['supplier'].queryset = Supplier.objects.order_by('name')
+        self.fields['supplier'].empty_label = '— Pasirinkite tiekėją —'
+        self.fields['supplier'].label_from_instance = supplier_choice_label
+
+        self.fields['product'].queryset = Product.objects.order_by('code', 'description1')
+        self.fields['product'].empty_label = '— Pasirinkite prekę (nebūtina) —'
+        self.fields['product'].required = False
+        self.fields['product'].label_from_instance = product_choice_label
 
 
 class InvoiceForm(forms.ModelForm):
@@ -51,6 +81,12 @@ class InvoiceForm(forms.ModelForm):
             'due_date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['client'].queryset = Client.objects.order_by('name')
+        self.fields['client'].empty_label = '— Pasirinkite klientą —'
+        self.fields['client'].label_from_instance = client_choice_label
 
 
 class InvoiceLineForm(forms.ModelForm):
@@ -66,9 +102,10 @@ class InvoiceLineForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product'].queryset = Product.objects.all()
-        self.fields['product'].empty_label = '— Select product —'
+        self.fields['product'].queryset = Product.objects.order_by('code', 'description1')
+        self.fields['product'].empty_label = '— Pasirinkite prekę —'
         self.fields['product'].required = False
+        self.fields['product'].label_from_instance = product_choice_label
 
 
 InvoiceLineFormSet = inlineformset_factory(

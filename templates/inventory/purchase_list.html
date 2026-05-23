@@ -1,14 +1,17 @@
 {% extends "inventory/base.html" %}
 {% block title %}Pirkimai{% endblock %}
 {% block breadcrumb %}<strong>Pirkimai</strong>{% endblock %}
-{% block topbar_actions %}<a href="{% url 'purchase_create' %}" class="btn btn-primary btn-sm">+ Naujas pirkimas</a>{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'supplier_list' %}" class="btn btn-secondary btn-sm">Tiekėjai</a>
+  <a href="{% url 'purchase_create' %}" class="btn btn-primary btn-sm">+ Naujas pirkimas</a>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <div><h1>Pirkimų žurnalas</h1><div class="subtitle">Iš viso: {{ purchases.count }} įrašų</div></div>
 </div>
 <div class="search-bar">
   <form method="get" style="display:flex;gap:8px;flex:1">
-    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal sąskaitos nr., tiekėją, aprašymą…">
+    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal sąskaitos nr., tiekėją, kodą, aprašymą…">
     <button type="submit" class="btn btn-secondary">Ieškoti</button>
     {% if q %}<a href="{% url 'purchase_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}
   </form>
@@ -22,7 +25,7 @@
         <tr>
           <td class="td-mono fw-bold"><a href="{% url 'purchase_detail' p.pk %}">{{ p.invoice_number }}</a></td>
           <td class="td-mono text-muted">{{ p.invoice_date|date:"d.m.Y" }}</td>
-          <td>{{ p.supplier|truncatechars:22 }}</td>
+          <td><a href="{% url 'supplier_detail' p.supplier.pk %}">{{ p.supplier.name|truncatechars:22 }}</a></td>
           <td>{{ p.description|truncatechars:30 }}</td>
           <td class="td-mono">{% if p.product %}<a href="{% url 'product_detail' p.product.pk %}">{{ p.product.code }}</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td class="td-right td-mono">{{ p.quantity }} {{ p.unit }}</td>

@@ -166,6 +166,9 @@ a:hover{text-decoration:underline;}
     <a href="{% url 'client_list' %}" class="nav-link {% if 'client' in request.resolver_match.url_name %}active{% endif %}">
       <span class="icon">🏢</span> Klientai
     </a>
+    <a href="{% url 'supplier_list' %}" class="nav-link {% if 'supplier' in request.resolver_match.url_name %}active{% endif %}">
+      <span class="icon">🚚</span> Tiekėjai
+    </a>
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-user">

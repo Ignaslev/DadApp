@@ -83,7 +83,7 @@
           {% for p in recent_purchases %}
           <tr>
             <td class="td-mono">{{ p.invoice_number }}</td>
-            <td>{{ p.supplier|truncatechars:20 }}</td>
+            <td><a href="{% url 'supplier_detail' p.supplier.pk %}">{{ p.supplier.name|truncatechars:20 }}</a></td>
             <td>{{ p.description|truncatechars:24 }}</td>
             <td class="td-right td-mono">{{ p.quantity }} {{ p.unit }}</td>
           </tr>

@@ -3,23 +3,48 @@
 {% block breadcrumb %}<a href="{% url 'purchase_list' %}">Pirkimai</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>{{ title }}</h1></div></div>
-<div class="card" style="max-width:800px">
+<div class="card" style="max-width:900px">
   <div class="card-body">
     <form method="post" id="purchaseForm">
       {% csrf_token %}
       <div class="form-grid">
         <div class="field"><label>Sąskaitos numeris *</label>{{ form.invoice_number }}</div>
-        <div class="field"><label>Tiekėjas *</label>{{ form.supplier }}</div>
+        <div class="field">
+          <label>Tiekėjas *</label>
+          <input type="text" id="supplierSearch" list="supplierOptionsList" placeholder="Ieškoti tiekėjo pagal pavadinimą ar kodą">
+          <datalist id="supplierOptionsList"></datalist>
+          <div style="display:none">{{ form.supplier }}</div>
+          <div style="margin-top:6px">
+            <a href="{% url 'supplier_create' %}" class="btn btn-secondary btn-sm">+ Naujas tiekėjas</a>
+          </div>
+        </div>
         <div class="field"><label>Sąskaitos data *</label>{{ form.invoice_date }}</div>
         <div class="field"><label>Apmokėti iki</label>{{ form.due_date }}</div>
         <div class="field"><label>Tipas</label>{{ form.purchase_type }}</div>
-        <div class="field"><label>Susieti su preke</label>{{ form.product }}</div>
+        <div class="field">
+          <label>Susieti su preke</label>
+          <input type="text" id="productSearch" list="productOptionsList" placeholder="Ieškoti pagal prekės kodą ar pavadinimą">
+          <datalist id="productOptionsList"></datalist>
+          <div style="display:none">{{ form.product }}</div>
+        </div>
         <div class="field form-full"><label>Aprašymas *</label>{{ form.description }}</div>
         <div class="field"><label>Mat. vienetas</label>{{ form.unit }}</div>
         <div class="field"><label>Kiekis *</label>{{ form.quantity }}</div>
         <div class="field"><label>Kaina/vnt (€, be PVM) *</label>{{ form.unit_price }}</div>
         <div class="field"><label>PVM tarifas (%)</label>{{ form.vat_rate }}</div>
         <div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>
+      </div>
+      <div id="productInfoBox" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-top:12px">
+        <div style="font-weight:700;margin-bottom:8px">Susietos prekės informacija</div>
+        <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div><span class="text-muted">Kodas: </span><span id="infoCode">—</span></div>
+          <div><span class="text-muted">Pakuotės kodas: </span><span id="infoPackage">—</span></div>
+          <div><span class="text-muted">Likutis: </span><span id="infoQty">—</span></div>
+          <div><span class="text-muted">Mat. vnt.: </span><span id="infoUnit">—</span></div>
+          <div><span class="text-muted">Savikaina: </span><span id="infoCost">—</span></div>
+          <div><span class="text-muted">Pardavimo kaina: </span><span id="infoPrice">—</span></div>
+          <div><span class="text-muted">Vieneto svoris: </span><span id="infoWeight">—</span></div>
+        </div>
       </div>
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-top:12px;display:flex;gap:28px;font-family:var(--mono);font-size:13px">
         <div><span class="text-muted">Suma be PVM: </span><span id="previewExcl" class="fw-bold">€0.00</span></div>
@@ -38,15 +63,183 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-function update(){
-  const qty=parseFloat(document.querySelector('[name=quantity]').value)||0;
-  const price=parseFloat(document.querySelector('[name=unit_price]').value)||0;
-  const vat=parseFloat(document.querySelector('[name=vat_rate]').value)||0;
-  const excl=qty*price; const vatAmt=excl*(vat/100);
-  document.getElementById('previewExcl').textContent='€'+excl.toFixed(2);
-  document.getElementById('previewVat').textContent='€'+vatAmt.toFixed(2);
-  document.getElementById('previewTotal').textContent='€'+(excl+vatAmt).toFixed(2);
+const supplierSelect = document.getElementById('id_supplier');
+const supplierSearch = document.getElementById('supplierSearch');
+const supplierOptionsList = document.getElementById('supplierOptionsList');
+const productSelect = document.getElementById('id_product');
+const productSearch = document.getElementById('productSearch');
+const productOptionsList = document.getElementById('productOptionsList');
+
+function normalize(value) {
+  return (value || '').trim().toLowerCase();
 }
-document.querySelectorAll('[name=quantity],[name=unit_price],[name=vat_rate]').forEach(el=>el.addEventListener('input',update));
+
+function splitLabel(text) {
+  return (text || '')
+    .split(' — ')
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function buildDatalistFromSelect(select, datalist) {
+  if (!select || !datalist) return;
+
+  const seen = new Set();
+  datalist.innerHTML = '';
+
+  [...select.options].forEach(opt => {
+    if (!opt.value) return;
+
+    const label = opt.textContent.trim();
+    const variants = [label, ...splitLabel(label)];
+
+    variants.forEach(value => {
+      const key = normalize(value);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+
+      const option = document.createElement('option');
+      option.value = value;
+      option.label = label;
+      datalist.appendChild(option);
+    });
+  });
+}
+
+function findMatchingOption(select, rawValue) {
+  const needle = normalize(rawValue);
+  if (!needle) return null;
+
+  return [...select.options].find(opt => {
+    if (!opt.value) return false;
+
+    const label = opt.textContent.trim();
+    const parts = splitLabel(label).map(normalize);
+
+    return normalize(label) === needle || parts.includes(needle);
+  }) || null;
+}
+
+function syncInputToSelect(input, select, onMissing) {
+  const match = findMatchingOption(select, input.value);
+  if (match) {
+    select.value = match.value;
+    input.value = match.textContent.trim();
+    return true;
+  }
+  select.value = '';
+  if (typeof onMissing === 'function') onMissing();
+  return false;
+}
+
+function syncInputFromSelect(input, select) {
+  const current = select.options[select.selectedIndex];
+  input.value = current && current.value ? current.textContent.trim() : '';
+}
+
+function formatNumber(value, digits = 2) {
+  const num = parseFloat(value);
+  if (Number.isNaN(num)) return '—';
+  return num.toFixed(digits);
+}
+
+function showProductInfo(data) {
+  document.getElementById('productInfoBox').style.display = 'block';
+  document.getElementById('infoCode').textContent = data.code || '—';
+  document.getElementById('infoPackage').textContent = data.package_code || '—';
+  document.getElementById('infoQty').textContent = formatNumber(data.quantity, 4);
+  document.getElementById('infoUnit').textContent = data.unit || '—';
+  document.getElementById('infoCost').textContent = data.cost !== undefined ? '€' + formatNumber(data.cost, 4) : '—';
+  document.getElementById('infoPrice').textContent = data.price !== undefined ? '€' + formatNumber(data.price, 4) : '—';
+  document.getElementById('infoWeight').textContent = data.weight !== undefined ? formatNumber(data.weight, 4) + ' kg' : '—';
+}
+
+function hideProductInfo() {
+  document.getElementById('productInfoBox').style.display = 'none';
+}
+
+async function fillFromProduct(select) {
+  const selectedText = select.options[select.selectedIndex]?.text?.trim() || '';
+  if (!selectedText) {
+    hideProductInfo();
+    return;
+  }
+
+  const code = splitLabel(selectedText)[0] || '';
+  if (!code) {
+    hideProductInfo();
+    return;
+  }
+
+  const resp = await fetch(`/api/product/?code=${encodeURIComponent(code)}`);
+  const data = await resp.json();
+
+  if (!data || !data.code) {
+    hideProductInfo();
+    return;
+  }
+
+  const descriptionField = document.getElementById('id_description');
+  const unitField = document.getElementById('id_unit');
+  const unitPriceField = document.getElementById('id_unit_price');
+
+  if (descriptionField && !descriptionField.value.trim()) {
+    descriptionField.value = data.description || '';
+  }
+
+  if (unitField && !unitField.value.trim()) {
+    unitField.value = data.unit || '';
+  }
+
+  if (unitPriceField && (!unitPriceField.value || parseFloat(unitPriceField.value) === 0)) {
+    unitPriceField.value = data.cost || '';
+  }
+
+  showProductInfo(data);
+  updateTotals();
+}
+
+function updateTotals() {
+  const qty = parseFloat(document.querySelector('[name=quantity]')?.value) || 0;
+  const price = parseFloat(document.querySelector('[name=unit_price]')?.value) || 0;
+  const vat = parseFloat(document.querySelector('[name=vat_rate]')?.value) || 0;
+
+  const excl = qty * price;
+  const vatAmt = excl * (vat / 100);
+
+  document.getElementById('previewExcl').textContent = '€' + excl.toFixed(2);
+  document.getElementById('previewVat').textContent = '€' + vatAmt.toFixed(2);
+  document.getElementById('previewTotal').textContent = '€' + (excl + vatAmt).toFixed(2);
+}
+
+buildDatalistFromSelect(supplierSelect, supplierOptionsList);
+syncInputFromSelect(supplierSearch, supplierSelect);
+const syncSupplier = () => syncInputToSelect(supplierSearch, supplierSelect);
+supplierSearch.addEventListener('change', syncSupplier);
+supplierSearch.addEventListener('blur', syncSupplier);
+
+buildDatalistFromSelect(productSelect, productOptionsList);
+syncInputFromSelect(productSearch, productSelect);
+
+const syncAndFill = async () => {
+  const matched = syncInputToSelect(productSearch, productSelect, hideProductInfo);
+  if (matched) {
+    await fillFromProduct(productSelect);
+  }
+};
+
+productSearch.addEventListener('change', syncAndFill);
+productSearch.addEventListener('blur', syncAndFill);
+
+productSelect.addEventListener('change', async () => {
+  syncInputFromSelect(productSearch, productSelect);
+  await fillFromProduct(productSelect);
+});
+
+document.querySelectorAll('[name=quantity],[name=unit_price],[name=vat_rate]').forEach(el => {
+  el.addEventListener('input', updateTotals);
+});
+
+updateTotals();
 </script>
 {% endblock %}

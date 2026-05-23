@@ -96,8 +96,10 @@
         <th style="width:30px">#</th>
         <th>Description</th>
         <th style="width:40px">Unit</th>
-        <th class="right" style="width:60px">Qty</th>
+        <th class="right" style="width:55px">Qty</th>
         <th class="right" style="width:70px">Unit Price</th>
+        <th class="right" style="width:60px">Unit kg</th>
+        <th class="right" style="width:70px">Total kg</th>
         {% if invoice.invoice_type != 'BE_PVM' %}
         <th class="right" style="width:50px">VAT %</th>
         <th class="right" style="width:70px">VAT €</th>
@@ -113,6 +115,8 @@
         <td>{{ line.unit }}</td>
         <td class="right">{{ line.quantity }}</td>
         <td class="right">€{{ line.unit_price|floatformat:4 }}</td>
+        <td class="right">{{ line.weight_kg|floatformat:4 }}</td>
+        <td class="right">{{ line.total_weight|floatformat:4 }}</td>
         {% if invoice.invoice_type != 'BE_PVM' %}
         <td class="right">{{ line.vat_rate }}%</td>
         <td class="right">€{{ line.vat_amount|floatformat:2 }}</td>
@@ -129,6 +133,7 @@
       {% if invoice.invoice_type != 'BE_PVM' %}
       <div class="total-row"><span>VAT</span><span>€{{ invoice.total_vat|floatformat:2 }}</span></div>
       {% endif %}
+      <div class="total-row"><span>Total weight</span><span>{{ invoice.total_weight|floatformat:4 }} kg</span></div>
       <div class="total-row grand"><span>TOTAL DUE</span><span>€{{ invoice.total_with_vat|floatformat:2 }}</span></div>
     </div>
   </div>

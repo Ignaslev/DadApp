@@ -10,7 +10,7 @@ import openpyxl
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from inventory.models import Client, Invoice, InvoiceLine, Payment, Product, Purchase, Sale
+from inventory.models import Client, Supplier, Invoice, InvoiceLine, Payment, Product, Purchase, Sale
 
 
 class Command(BaseCommand):
@@ -84,6 +84,10 @@ class Command(BaseCommand):
 
     def _client_code_from_name(self, name):
         return name[:48].replace('"', '').replace(' ', '_')
+
+    def _supplier_code_from_name(self, name):
+        base = ''.join(ch if ch.isalnum() else '_' for ch in (name or '').upper()).strip('_')
+        return (base or 'SUPPLIER')[:48]
 
     def _import_clients(self, wb):
         if 'KLIENTAI' not in wb.sheetnames:
@@ -178,7 +182,21 @@ class Command(BaseCommand):
             inv_date = self._date(row[4])
             if not inv_num or not inv_date:
                 continue
-            supplier = self._s(row[6]) or '—'
+
+            supplier_name = self._s(row[6]) or 'Nežinomas tiekėjas'
+            supplier = Supplier.objects.filter(name__iexact=supplier_name).first()
+            if not supplier:
+                base_code = self._supplier_code_from_name(supplier_name)
+                code = base_code
+                suffix = 1
+                while Supplier.objects.filter(code=code).exclude(name__iexact=supplier_name).exists():
+                    code = f"{base_code[:45]}_{suffix}"
+                    suffix += 1
+                supplier, _ = Supplier.objects.get_or_create(
+                    code=code,
+                    defaults={'name': supplier_name},
+                )
+
             desc = self._s(row[7]) or self._s(row[22]) or inv_num
             product_code = self._s(row[11])
             quantity = self._dec(row[13])

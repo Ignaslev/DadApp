@@ -39,7 +39,7 @@
           <tr>
             <td class="td-mono">{{ pur.invoice_number }}</td>
             <td class="text-muted td-mono">{{ pur.invoice_date|date:"d.m.Y" }}</td>
-            <td>{{ pur.supplier|truncatechars:20 }}</td>
+            <td><a href="{% url 'supplier_detail' pur.supplier.pk %}">{{ pur.supplier.name|truncatechars:20 }}</a></td>
             <td class="td-right td-mono">{{ pur.quantity }}</td>
             <td class="td-right td-mono">€{{ pur.unit_price|floatformat:4 }}</td>
           </tr>

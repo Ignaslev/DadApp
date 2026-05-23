@@ -1,9 +1,16 @@
 from django.contrib import admin
-from .models import Client, Product, Purchase, Invoice, InvoiceLine, Sale, Payment
+
+from .models import Client, Supplier, Product, Purchase, Invoice, InvoiceLine, Sale, Payment
 
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'country', 'vat_code']
+    search_fields = ['name', 'code', 'vat_code']
+
+
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
     list_display = ['name', 'code', 'country', 'vat_code']
     search_fields = ['name', 'code', 'vat_code']
 
@@ -18,7 +25,7 @@ class ProductAdmin(admin.ModelAdmin):
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
     list_display = ['invoice_number', 'invoice_date', 'supplier', 'description', 'quantity', 'unit_price']
-    search_fields = ['invoice_number', 'supplier', 'description']
+    search_fields = ['invoice_number', 'supplier__name', 'supplier__code', 'description']
     list_filter = ['purchase_type']
 
 
