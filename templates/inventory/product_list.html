@@ -1,46 +1,11 @@
 {% extends "inventory/base.html" %}
 {% block title %}Prekės{% endblock %}
-{% block breadcrumb %}<strong>Sandėlis — Prekės</strong>{% endblock %}
-{% block topbar_actions %}<a href="{% url 'product_create' %}" class="btn btn-primary btn-sm">+ Nauja prekė</a>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Sandėlis</div><div class="topbar-title"><strong>Prekės</strong><span>Prekių sąrašas</span></div>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'product_create' %}" class="btn btn-primary">+ Nauja prekė</a>{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Prekių sąrašas (Sandėlis)</h1><div class="subtitle">Iš viso: {{ products.count }} prekių</div></div>
-</div>
-<div class="search-bar">
-  <form method="get" style="display:flex;gap:8px;flex:1">
-    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal kodą, aprašymą…">
-    <select name="type" style="background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:5px 10px;font-size:13px">
-      <option value="">Visi tipai</option>
-      {% for val, label in product_types %}<option value="{{ val }}" {% if ptype == val %}selected{% endif %}>{{ val }}</option>{% endfor %}
-    </select>
-    <button type="submit" class="btn btn-secondary">Filtruoti</button>
-    {% if q or ptype %}<a href="{% url 'product_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}
-  </form>
-</div>
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th>Kodas</th><th>Aprašymas</th><th>Tipas</th><th class="td-right">Kiekis</th><th>Mat. vnt.</th><th class="td-right">Vid. savikaina</th><th class="td-right">Pardavimo kaina</th><th class="td-right">Sandėlio vertė</th><th></th></tr>
-      </thead>
-      <tbody>
-        {% for p in products %}
-        <tr>
-          <td class="td-mono fw-bold"><a href="{% url 'product_detail' p.pk %}">{{ p.code }}</a></td>
-          <td>{{ p.description1 }}{% if p.description2 %}<br><span class="text-muted" style="font-size:11px">{{ p.description2 }}</span>{% endif %}</td>
-          <td><span class="badge badge-gray">{{ p.product_type }}</span></td>
-          <td class="td-right td-mono fw-bold {% if p.quantity <= 0 %}text-red{% elif p.quantity < 10 %}text-yellow{% else %}text-green{% endif %}">{{ p.quantity|floatformat:0 }}</td>
-          <td class="text-muted">{{ p.unit }}</td>
-          <td class="td-right td-mono">€{{ p.avg_cost|floatformat:4 }}</td>
-          <td class="td-right td-mono">€{{ p.sale_price|floatformat:4 }}</td>
-          <td class="td-right td-mono fw-bold">€{{ p.stock_value|floatformat:2 }}</td>
-          <td><a href="{% url 'product_edit' p.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📦</div><p>Prekių nėra. <a href="{% url 'product_create' %}">Pridėti pirmą prekę</a></p></div></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<div class="search-bar"><form method="get"><input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal kodą, aprašymą..."><select name="type"><option value="">Visi tipai</option>{% for val, label in product_types %}<option value="{{ val }}" {% if ptype == val %}selected{% endif %}>{{ val }}</option>{% endfor %}</select><button class="btn btn-secondary" type="submit">Filtruoti</button>{% if q or ptype %}<a href="{% url 'product_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}</form></div>
+<div class="card"><div class="card-header"><h2>Iš viso: {{ products.count }} prekės</h2></div><div class="table-wrap"><table>
+<thead><tr><th>Kodas</th><th>Aprašymas</th><th>Tipas</th><th class="td-right">Kiekis</th><th>Mat. vnt.</th><th class="td-right">Vid. savikaina</th><th class="td-right">Pardavimo kaina</th><th class="td-right">Sandėlio vertė</th><th></th></tr></thead>
+<tbody>{% for p in products %}<tr><td class="td-mono fw-bold"><a href="{% url 'product_detail' p.pk %}">{{ p.code }}</a></td><td>{{ p.description1 }}{% if p.description2 %}<br><span class="text-muted" style="font-size:12px">{{ p.description2 }}</span>{% endif %}</td><td><span class="badge badge-gray">{{ p.product_type }}</span></td><td class="td-right td-mono fw-bold {% if p.quantity <= 0 %}text-red{% elif p.quantity < 10 %}text-yellow{% else %}text-green{% endif %}">{{ p.quantity|floatformat:0 }}</td><td class="text-muted">{{ p.unit }}</td><td class="td-right td-mono">€{{ p.avg_cost|floatformat:4 }}</td><td class="td-right td-mono">€{{ p.sale_price|floatformat:4 }}</td><td class="td-right td-mono fw-bold">€{{ p.stock_value|floatformat:2 }}</td><td><a href="{% url 'product_edit' p.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a></td></tr>{% empty %}<tr><td colspan="9"><div class="empty-state">Prekių nėra. <a href="{% url 'product_create' %}">Pridėti pirmą prekę</a></div></td></tr>{% endfor %}</tbody>
+</table></div></div>
 {% endblock %}

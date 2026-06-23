@@ -1,37 +1,11 @@
 {% extends "inventory/base.html" %}
 {% block title %}Klientai{% endblock %}
-{% block breadcrumb %}<strong>Klientai</strong>{% endblock %}
-{% block topbar_actions %}<a href="{% url 'client_create' %}" class="btn btn-primary btn-sm">+ Naujas klientas</a>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Kontaktai</div><div class="topbar-title"><strong>Klientai</strong><span>Klientų sąrašas</span></div>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'client_create' %}" class="btn btn-primary">+ Naujas klientas</a>{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Klientų sąrašas</h1><div class="subtitle">Iš viso: {{ clients.count }}</div></div>
-</div>
-<div class="search-bar">
-  <form method="get" style="display:flex;gap:8px;flex:1">
-    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal pavadinimą, kodą, šalį…">
-    <button type="submit" class="btn btn-secondary">Ieškoti</button>
-    {% if q %}<a href="{% url 'client_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}
-  </form>
-</div>
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Kodas</th><th>Pavadinimas</th><th>Šalis</th><th>PVM kodas</th><th>Kontaktai</th><th></th></tr></thead>
-      <tbody>
-        {% for c in clients %}
-        <tr>
-          <td class="td-mono fw-bold">{{ c.code }}</td>
-          <td><a href="{% url 'client_detail' c.pk %}">{{ c.name }}</a></td>
-          <td>{{ c.country|default:"—" }}</td>
-          <td class="td-mono">{{ c.vat_code|default:"—" }}</td>
-          <td class="text-muted">{{ c.contacts|truncatechars:38 }}</td>
-          <td><a href="{% url 'client_edit' c.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a></td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">🏢</div><p>Klientų nėra. <a href="{% url 'client_create' %}">Pridėti pirmą klientą</a></p></div></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<div class="search-bar"><form method="get"><input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal pavadinimą, kodą, šalį..."><button type="submit" class="btn btn-secondary">Ieškoti</button>{% if q %}<a href="{% url 'client_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}</form></div>
+<div class="card"><div class="card-header"><h2>Iš viso: {{ clients.count }}</h2></div><div class="table-wrap"><table>
+<thead><tr><th>Kodas</th><th>Pavadinimas</th><th>Šalis</th><th>PVM kodas</th><th>Kontaktai</th><th></th></tr></thead>
+<tbody>{% for c in clients %}<tr><td class="td-mono fw-bold">{{ c.code }}</td><td><a href="{% url 'client_detail' c.pk %}">{{ c.name }}</a></td><td>{{ c.country|default:"—" }}</td><td class="td-mono">{{ c.vat_code|default:"—" }}</td><td class="text-muted">{{ c.contacts|truncatechars:42 }}</td><td><a href="{% url 'client_edit' c.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a></td></tr>{% empty %}<tr><td colspan="6"><div class="empty-state">Klientų nėra. <a href="{% url 'client_create' %}">Pridėti pirmą klientą</a></div></td></tr>{% endfor %}</tbody>
+</table></div></div>
 {% endblock %}

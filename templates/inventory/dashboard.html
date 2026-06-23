@@ -1,144 +1,69 @@
 {% extends "inventory/base.html" %}
 {% block title %}Suvestinė{% endblock %}
-{% block breadcrumb %}<strong>Suvestinė</strong>{% endblock %}
-
+{% block breadcrumb %}<div class="topbar-sec">Apžvalga</div><div class="topbar-title"><strong>Suvestinė</strong><span>Verslo apžvalga</span></div>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'invoice_create' %}" class="btn btn-primary">+ Nauja sąskaita</a><a href="{% url 'purchase_create' %}" class="btn btn-secondary">+ Pirkimas</a>{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Suvestinė</h1><div class="subtitle">Verslo apžvalga</div></div>
-  <div class="flex flex-gap">
-    <a href="{% url 'invoice_create' %}" class="btn btn-primary">+ Nauja sąskaita</a>
-    <a href="{% url 'purchase_create' %}" class="btn btn-secondary">+ Pirkimas</a>
-  </div>
-</div>
-
 <div class="stats-grid">
-  <div class="stat-card green">
-    <div class="stat-label">Mėnesio apyvarta</div>
+  <div class="stat-card">
+    <div class="stat-top"><div class="stat-label">Mėnesio apyvarta</div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M7 21v-7M12 21V7M17 21v-10"/></svg></div></div>
     <div class="stat-value">€{{ monthly_revenue|floatformat:2 }}</div>
-    <div class="stat-sub">Einamasis mėnuo</div>
+    <div><span class="trend">Šį mėnesį</span> <span class="stat-sub">einamasis mėnuo</span></div>
   </div>
-  <div class="stat-card {% if overdue_count %}red{% else %}yellow{% endif %}">
-    <div class="stat-label">Nesumokėta</div>
-    <div class="stat-value">€{{ total_outstanding|floatformat:2 }}</div>
-    <div class="stat-sub">{{ overdue_count }} vėluojanti sąskaita</div>
+  <div class="stat-card yellow">
+    <div class="stat-top"><div class="stat-label">Nesumokėta</div><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 11h10M7 15h5"/></svg></div></div>
+    <div class="stat-value">€{{ total_outstanding|floatformat:2 }}</div><div class="stat-sub">{{ overdue_count }} vėluojanti sąskaita</div>
   </div>
   <div class="stat-card blue">
-    <div class="stat-label">Sandėlio vertė</div>
-    <div class="stat-value">€{{ total_stock_value|floatformat:2 }}</div>
-    <div class="stat-sub">{{ total_products }} prekių</div>
+    <div class="stat-top"><div class="stat-label">Sandėlio vertė</div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 7.5 12 2.7 3 7.5l9 4.8 9-4.8Z"/><path d="M3 7.5v9l9 4.8 9-4.8v-9"/><path d="M12 12.3V21"/></svg></div></div>
+    <div class="stat-value">€{{ total_stock_value|floatformat:2 }}</div><div class="stat-sub">{{ total_products }} prekių</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Klientai</div>
-    <div class="stat-value">{{ total_clients }}</div>
-    <div class="stat-sub">Iš viso registruota</div>
+    <div class="stat-top"><div class="stat-label">Klientai</div><div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20.5a6.6 6.6 0 0 1 13 0"/></svg></div></div>
+    <div class="stat-value">{{ total_clients }}</div><div class="stat-sub">Iš viso registruota</div>
   </div>
-  <div class="stat-card {% if low_stock or out_of_stock %}yellow{% endif %}">
-    <div class="stat-label">Mažai likučio</div>
-    <div class="stat-value">{{ low_stock }}</div>
-    <div class="stat-sub">{{ out_of_stock }} baigėsi atsargos</div>
+  <div class="stat-card {% if low_stock or out_of_stock %}red{% endif %}">
+    <div class="stat-top"><div class="stat-label">Mažai likučio</div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M12 3.4 2.3 20.6h19.4Z"/><path d="M12 9.5v4.2M12 17.6h.01"/></svg></div></div>
+    <div class="stat-value">{{ low_stock }}</div><div class="stat-sub">{{ out_of_stock }} baigėsi atsargos</div>
   </div>
 </div>
 
-<div class="two-col">
-  <div class="card">
-    <div class="card-header">
-      <h2>Paskutinės sąskaitos</h2>
-      <a href="{% url 'invoice_list' %}" class="btn btn-secondary btn-sm">Visos →</a>
-    </div>
-    <div class="table-wrap">
-      <table>
+<div class="dashboard-grid">
+  <div class="dashboard-main">
+    <div class="card">
+      <div class="card-header"><h2>Paskutinės sąskaitos</h2><a href="{% url 'invoice_list' %}" class="btn btn-secondary btn-sm">Visos →</a></div>
+      <div class="table-wrap"><table>
         <thead><tr><th>Numeris</th><th>Klientas</th><th>Data</th><th>Būsena</th><th class="td-right">Suma</th></tr></thead>
-        <tbody>
-          {% for inv in recent_invoices %}
-          <tr>
-            <td><a href="{% url 'invoice_detail' inv.pk %}" class="td-mono fw-bold">{{ inv.number }}</a></td>
-            <td>{{ inv.client.name|truncatechars:26 }}</td>
-            <td class="td-mono text-muted">{{ inv.date|date:"d.m.Y" }}</td>
-            <td>
-              {% if inv.status == 'PAID' %}<span class="badge badge-green">Apmokėta</span>
-              {% elif inv.status == 'OVERDUE' %}<span class="badge badge-red">Vėluoja</span>
-              {% elif inv.status == 'PARTIAL' %}<span class="badge badge-yellow">Dalinai</span>
-              {% elif inv.status == 'ISSUED' %}<span class="badge badge-blue">Išrašyta</span>
-              {% else %}<span class="badge badge-gray">Juodraštis</span>{% endif %}
-            </td>
-            <td class="td-right td-mono fw-bold">€{{ inv.total_with_vat|floatformat:2 }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5"><div class="empty-state"><div class="empty-icon">🧾</div><p>Sąskaitų nėra. <a href="{% url 'invoice_create' %}">Sukurti pirmą</a></p></div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        <tbody>{% for inv in recent_invoices %}<tr>
+          <td class="td-mono fw-bold"><a href="{% url 'invoice_detail' inv.pk %}">{{ inv.number }}</a></td>
+          <td>{{ inv.client.name|truncatechars:28 }}</td><td class="td-mono text-muted">{{ inv.date|date:"Y-m-d" }}</td>
+          <td>{% include "inventory/_status_badge.html" with status=inv.status %}</td>
+          <td class="td-right td-mono fw-bold">€{{ inv.total_with_vat|floatformat:2 }}</td>
+        </tr>{% empty %}<tr><td colspan="5"><div class="empty-state">Sąskaitų nėra. <a href="{% url 'invoice_create' %}">Sukurti pirmą</a></div></td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Apyvarta — paskutiniai 6 mėnesiai</h2><span class="text-muted">€</span></div>
+      <div class="card-body"><div class="chart-wrap" id="revenueChart" data-chart='{{ chart_data|safe }}'></div></div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h2>Paskutiniai pirkimai</h2>
-      <a href="{% url 'purchase_list' %}" class="btn btn-secondary btn-sm">Visi →</a>
+  <div class="dashboard-side">
+    <div class="card">
+      <div class="card-header"><h2>Paskutiniai pirkimai</h2><a href="{% url 'purchase_list' %}" class="btn btn-secondary btn-sm">Visi →</a></div>
+      <div class="card-body">
+        {% for p in recent_purchases %}
+        <div class="list-card"><span class="list-icon"><svg viewBox="0 0 24 24"><path d="M21 7.5 12 2.7 3 7.5l9 4.8 9-4.8Z"/><path d="M3 7.5v9l9 4.8 9-4.8v-9"/><path d="M12 12.3V21"/></svg></span><div style="flex:1;min-width:0"><div class="fw-bold">{{ p.description|truncatechars:28 }}</div><div class="text-muted" style="font-size:12px">{{ p.supplier|truncatechars:28 }}</div></div><div class="td-mono fw-bold">{{ p.quantity|floatformat:0 }} {{ p.unit }}</div></div>
+        {% empty %}<div class="empty-state">Pirkimų nėra.</div>{% endfor %}
+      </div>
     </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Sąskaita</th><th>Tiekėjas</th><th>Prekė</th><th class="td-right">Kiekis</th></tr></thead>
-        <tbody>
-          {% for p in recent_purchases %}
-          <tr>
-            <td class="td-mono">{{ p.invoice_number }}</td>
-            <td><a href="{% url 'supplier_detail' p.supplier.pk %}">{{ p.supplier.name|truncatechars:20 }}</a></td>
-            <td>{{ p.description|truncatechars:24 }}</td>
-            <td class="td-right td-mono">{{ p.quantity }} {{ p.unit }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4"><div class="empty-state"><div class="empty-icon">🛒</div><p>Pirkimų nėra.</p></div></td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header"><h2>Apyvarta — paskutiniai 6 mėnesiai</h2></div>
-  <div class="card-body">
-    <canvas id="revenueChart" height="80"></canvas>
   </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
-const chartData = {{ chart_data|safe }};
-const canvas = document.getElementById('revenueChart');
-const ctx = canvas.getContext('2d');
-const W = canvas.offsetWidth, H = canvas.offsetHeight;
-canvas.width = W; canvas.height = H;
-const labels = chartData.map(d => d.month);
-const values = chartData.map(d => d.revenue);
-const max = Math.max(...values, 1);
-const pad = {top:16,right:16,bottom:36,left:64};
-const cW = W-pad.left-pad.right, cH = H-pad.top-pad.bottom;
-ctx.clearRect(0,0,W,H);
-ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=1;
-for(let i=0;i<=4;i++){
-  const y=pad.top+(cH/4)*i;
-  ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(W-pad.right,y);ctx.stroke();
-  ctx.fillStyle='#6b7280';ctx.font='11px Noto Sans';ctx.textAlign='right';
-  ctx.fillText('€'+Math.round(max-(max/4)*i).toLocaleString(),pad.left-6,y+4);
-}
-const barW=(cW/labels.length)*0.55;
-labels.forEach((label,i)=>{
-  const x=pad.left+(cW/labels.length)*i+(cW/labels.length)*0.225;
-  const bH=(values[i]/max)*cH;
-  const y=pad.top+cH-bH;
-  const grad=ctx.createLinearGradient(0,y,0,y+bH);
-  grad.addColorStop(0,'#217346');grad.addColorStop(1,'#a7d9ba');
-  ctx.fillStyle=grad;
-  ctx.beginPath();ctx.roundRect(x,y,barW,bH,[3,3,0,0]);ctx.fill();
-  ctx.fillStyle='#4b5563';ctx.font='10px Noto Sans';ctx.textAlign='center';
-  ctx.fillText(label,x+barW/2,H-8);
-  if(values[i]>0){
-    ctx.fillStyle='#217346';ctx.font='bold 10px Noto Sans';
-    ctx.fillText('€'+Math.round(values[i]).toLocaleString(),x+barW/2,y-4);
-  }
-});
+(function(){
+  const wrap=document.getElementById('revenueChart'); if(!wrap) return;
+  const data=JSON.parse(wrap.dataset.chart||'[]'); const max=Math.max(...data.map(d=>d.revenue),1);
+  wrap.innerHTML=data.map((d,i)=>{const h=Math.max(18,Math.round(34+(d.revenue/max)*150));const label=d.month.split(' ')[0];const cur=i===data.length-1;return `<div class="chart-bar"><div class="chart-val">${d.revenue?Math.round(d.revenue).toLocaleString():'0'}</div><div class="chart-col ${cur?'current':''}" style="height:${h}px"></div><div class="chart-label">${label}</div></div>`}).join('');
+})();
 </script>
 {% endblock %}

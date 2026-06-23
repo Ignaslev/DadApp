@@ -1,0 +1,5 @@
+{% if status == 'PAID' %}<span class="badge badge-green">Apmokėta</span>
+{% elif status == 'OVERDUE' %}<span class="badge badge-red">Vėluoja</span>
+{% elif status == 'PARTIAL' %}<span class="badge badge-yellow">Dalinai</span>
+{% elif status == 'ISSUED' %}<span class="badge badge-blue">Išrašyta</span>
+{% else %}<span class="badge badge-gray">Juodraštis</span>{% endif %}

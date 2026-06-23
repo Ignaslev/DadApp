@@ -1,59 +1,11 @@
 {% extends "inventory/base.html" %}
 {% block title %}Sąskaitos{% endblock %}
-{% block breadcrumb %}<strong>Sąskaitos-faktūros</strong>{% endblock %}
-{% block topbar_actions %}<a href="{% url 'invoice_create' %}" class="btn btn-primary btn-sm">+ Nauja sąskaita</a>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Pardavimai</div><div class="topbar-title"><strong>Sąskaitos</strong><span>Sąskaitų-faktūrų sąrašas</span></div>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'invoice_create' %}" class="btn btn-primary">+ Nauja sąskaita</a>{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>Sąskaitų-faktūrų sąrašas</h1><div class="subtitle">Iš viso: {{ invoices.count }}</div></div>
-</div>
-<div class="search-bar">
-  <form method="get" style="display:flex;gap:8px;flex:1">
-    <input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal numerį ar klientą…">
-    <select name="status" style="background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:5px 10px;font-size:13px">
-      <option value="">Visos būsenos</option>
-      <option value="DRAFT" {% if status == 'DRAFT' %}selected{% endif %}>Juodraštis</option>
-      <option value="ISSUED" {% if status == 'ISSUED' %}selected{% endif %}>Išrašyta</option>
-      <option value="PARTIAL" {% if status == 'PARTIAL' %}selected{% endif %}>Dalinai apmokėta</option>
-      <option value="PAID" {% if status == 'PAID' %}selected{% endif %}>Apmokėta</option>
-      <option value="OVERDUE" {% if status == 'OVERDUE' %}selected{% endif %}>Vėluoja</option>
-    </select>
-    <button type="submit" class="btn btn-secondary">Filtruoti</button>
-    {% if q or status %}<a href="{% url 'invoice_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}
-  </form>
-</div>
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Numeris</th><th>Data</th><th>Klientas</th><th>Tipas</th><th>Būsena</th><th class="td-right">Be PVM</th><th class="td-right">Su PVM</th><th class="td-right">Likutis</th><th></th></tr></thead>
-      <tbody>
-        {% for inv in invoices %}
-        <tr>
-          <td class="td-mono fw-bold"><a href="{% url 'invoice_detail' inv.pk %}">{{ inv.number }}</a></td>
-          <td class="td-mono text-muted">{{ inv.date|date:"d.m.Y" }}</td>
-          <td><a href="{% url 'client_detail' inv.client.pk %}">{{ inv.client.name|truncatechars:26 }}</a></td>
-          <td><span class="badge badge-gray">{{ inv.invoice_type }}</span></td>
-          <td>
-            {% if inv.status == 'PAID' %}<span class="badge badge-green">Apmokėta</span>
-            {% elif inv.status == 'OVERDUE' %}<span class="badge badge-red">Vėluoja</span>
-            {% elif inv.status == 'PARTIAL' %}<span class="badge badge-yellow">Dalinai</span>
-            {% elif inv.status == 'ISSUED' %}<span class="badge badge-blue">Išrašyta</span>
-            {% else %}<span class="badge badge-gray">Juodraštis</span>{% endif %}
-          </td>
-          <td class="td-right td-mono">€{{ inv.total_excl_vat|floatformat:2 }}</td>
-          <td class="td-right td-mono fw-bold">€{{ inv.total_with_vat|floatformat:2 }}</td>
-          <td class="td-right td-mono fw-bold {% if inv.balance > 0 %}text-red{% endif %}">€{{ inv.balance|floatformat:2 }}</td>
-          <td>
-            <div class="flex flex-gap">
-              <a href="{% url 'invoice_detail' inv.pk %}" class="btn btn-secondary btn-sm">Peržiūrėti</a>
-              <a href="{% url 'invoice_pdf' inv.pk %}" class="btn btn-secondary btn-sm">PDF</a>
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🧾</div><p>Sąskaitų nėra. <a href="{% url 'invoice_create' %}">Sukurti pirmą sąskaitą</a></p></div></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+<div class="search-bar"><form method="get"><input type="text" name="q" value="{{ q }}" placeholder="Ieškoti pagal numerį ar klientą..."><select name="status"><option value="">Visos būsenos</option><option value="DRAFT" {% if status == 'DRAFT' %}selected{% endif %}>Juodraštis</option><option value="ISSUED" {% if status == 'ISSUED' %}selected{% endif %}>Išrašyta</option><option value="PARTIAL" {% if status == 'PARTIAL' %}selected{% endif %}>Dalinai apmokėta</option><option value="PAID" {% if status == 'PAID' %}selected{% endif %}>Apmokėta</option><option value="OVERDUE" {% if status == 'OVERDUE' %}selected{% endif %}>Vėluoja</option></select><button type="submit" class="btn btn-secondary">Filtruoti</button>{% if q or status %}<a href="{% url 'invoice_list' %}" class="btn btn-secondary">Išvalyti</a>{% endif %}</form></div>
+<div class="card"><div class="card-header"><h2>Iš viso: {{ invoices.count }}</h2></div><div class="table-wrap"><table>
+<thead><tr><th>Numeris</th><th>Data</th><th>Klientas</th><th>Tipas</th><th>Būsena</th><th class="td-right">Be PVM</th><th class="td-right">Su PVM</th><th class="td-right">Likutis</th><th></th></tr></thead>
+<tbody>{% for inv in invoices %}<tr><td class="td-mono fw-bold"><a href="{% url 'invoice_detail' inv.pk %}">{{ inv.number }}</a></td><td class="td-mono text-muted">{{ inv.date|date:"Y-m-d" }}</td><td><a href="{% url 'client_detail' inv.client.pk %}">{{ inv.client.name|truncatechars:28 }}</a></td><td><span class="badge badge-gray">{{ inv.invoice_type }}</span></td><td>{% include "inventory/_status_badge.html" with status=inv.status %}</td><td class="td-right td-mono">€{{ inv.total_excl_vat|floatformat:2 }}</td><td class="td-right td-mono fw-bold">€{{ inv.total_with_vat|floatformat:2 }}</td><td class="td-right td-mono fw-bold {% if inv.balance > 0 %}text-red{% endif %}">€{{ inv.balance|floatformat:2 }}</td><td><div class="flex flex-gap"><a href="{% url 'invoice_detail' inv.pk %}" class="btn btn-secondary btn-sm">Peržiūrėti</a><a href="{% url 'invoice_pdf' inv.pk %}" class="btn btn-secondary btn-sm">PDF</a></div></td></tr>{% empty %}<tr><td colspan="9"><div class="empty-state">Sąskaitų nėra. <a href="{% url 'invoice_create' %}">Sukurti pirmą sąskaitą</a></div></td></tr>{% endfor %}</tbody>
+</table></div></div>
 {% endblock %}

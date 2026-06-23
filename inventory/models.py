@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -327,3 +328,36 @@ class Payment(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.invoice.update_status()
+
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ('CLIENT_CREATED', 'Client created'),
+        ('CLIENT_UPDATED', 'Client updated'),
+        ('PRODUCT_CREATED', 'Product created'),
+        ('PRODUCT_UPDATED', 'Product updated'),
+        ('PURCHASE_CREATED', 'Purchase created'),
+        ('INVOICE_CREATED', 'Invoice created'),
+        ('INVOICE_UPDATED', 'Invoice updated'),
+        ('PAYMENT_RECORDED', 'Payment recorded'),
+        ('PRODUCT_SOLD', 'Product sold'),
+    ]
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    action = models.CharField(max_length=40, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=80)
+    object_id = models.CharField(max_length=80)
+    object_label = models.CharField(max_length=255)
+    message = models.CharField(max_length=500)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+        indexes = [
+            models.Index(fields=['model_name', 'object_id', '-created_at'], name='actlog_obj_idx'),
+            models.Index(fields=['action', '-created_at'], name='actlog_action_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.action} {self.object_label}"
+

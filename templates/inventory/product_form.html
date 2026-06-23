@@ -1,33 +1,15 @@
 {% extends "inventory/base.html" %}
 {% block title %}{{ title }}{% endblock %}
-{% block breadcrumb %}<a href="{% url 'product_list' %}">Prekės</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Sandėlis</div><div class="topbar-title"><strong>{{ title }}</strong><span>Prekės duomenys</span></div>{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>{{ title }}</h1></div></div>
-<div class="card" style="max-width:740px">
-  <div class="card-body">
-    <form method="post">
-      {% csrf_token %}
-      <div class="form-grid">
-        <div class="field"><label>Prekės kodas *</label>{{ form.code }}{% for e in form.code.errors %}<span style="color:var(--red);font-size:11px">{{ e }}</span>{% endfor %}</div>
-        <div class="field"><label>Tipas</label>{{ form.product_type }}</div>
-        <div class="field form-full"><label>Aprašymas 1 *</label>{{ form.description1 }}</div>
-        <div class="field form-full"><label>Aprašymas 2</label>{{ form.description2 }}</div>
-        <div class="field form-full"><label>Aprašymas 3</label>{{ form.description3 }}</div>
-        <div class="field form-full"><label>Aprašymas 4</label>{{ form.description4 }}</div>
-        <div class="field"><label>Mat. vienetas</label>{{ form.unit }}</div>
-        <div class="field"><label>Pardavimo kaina (€)</label>{{ form.sale_price }}</div>
-        <div class="field"><label>Svoris (kg)</label>{{ form.weight_kg }}</div>
-        <div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>
-      </div>
-      {% if not product %}
-      <div class="alert alert-info" style="margin-top:12px">ℹ️ Likutis ir vidutinė savikaina atsinaujina automatiškai registruojant pirkimus.</div>
-      {% endif %}
-      <hr class="divider">
-      <div class="flex flex-gap">
-        <button type="submit" class="btn btn-primary">💾 Išsaugoti</button>
-        <a href="{% if product %}{% url 'product_detail' product.pk %}{% else %}{% url 'product_list' %}{% endif %}" class="btn btn-secondary">Atšaukti</a>
-      </div>
-    </form>
-  </div>
+<div class="card" style="max-width:820px"><div class="card-body"><form method="post">{% csrf_token %}
+<div class="form-grid">
+
+<div class="field"><label>Prekės kodas *</label>{{ form.code }}</div><div class="field"><label>Tipas</label>{{ form.product_type }}</div>
+<div class="field form-full"><label>Aprašymas 1 *</label>{{ form.description1 }}</div><div class="field form-full"><label>Aprašymas 2</label>{{ form.description2 }}</div><div class="field form-full"><label>Aprašymas 3</label>{{ form.description3 }}</div><div class="field form-full"><label>Aprašymas 4</label>{{ form.description4 }}</div>
+<div class="field"><label>Mat. vienetas</label>{{ form.unit }}</div><div class="field"><label>Pardavimo kaina (€)</label>{{ form.sale_price }}</div><div class="field"><label>Svoris (kg)</label>{{ form.weight_kg }}</div><div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>
+
 </div>
+<hr class="divider"><div class="flex flex-gap"><button type="submit" class="btn btn-primary">Išsaugoti</button><a href= + cancel_expr + r class="btn btn-secondary">Atšaukti</a></div>
+</form></div></div>
 {% endblock %}

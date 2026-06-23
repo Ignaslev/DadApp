@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Client, Supplier, Product, Purchase, Invoice, InvoiceLine, Sale, Payment
+from .models import ActivityLog, Client, Supplier, Product, Purchase, Invoice, InvoiceLine, Sale, Payment
 
 
 @admin.register(Client)
@@ -46,3 +46,11 @@ class InvoiceAdmin(admin.ModelAdmin):
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['invoice', 'date', 'amount', 'method']
     list_filter = ['method']
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'action', 'model_name', 'object_label', 'user']
+    search_fields = ['action', 'model_name', 'object_label', 'message']
+    list_filter = ['action', 'model_name']
+    readonly_fields = ['created_at']

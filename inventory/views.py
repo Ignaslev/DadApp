@@ -23,10 +23,22 @@ from .forms import (
     ProductForm,
     PurchaseForm,
 )
-from .models import Client, Supplier, Invoice, Payment, Product, Purchase, Sale
+from .models import ActivityLog, Client, Supplier, Invoice, Payment, Product, Purchase, Sale
 from .services import replace_invoice_lines, restock_invoice
 
 logger = logging.getLogger(__name__)
+
+
+def log_activity(request, action, obj, message):
+    user = request.user if getattr(request.user, 'is_authenticated', False) else None
+    ActivityLog.objects.create(
+        user=user,
+        action=action,
+        model_name=obj.__class__.__name__,
+        object_id=str(obj.pk),
+        object_label=str(obj)[:255],
+        message=message[:500],
+    )
 
 
 @login_required
@@ -104,6 +116,7 @@ def client_create(request):
         form = ClientForm(request.POST)
         if form.is_valid():
             client = form.save()
+            log_activity(request, 'CLIENT_CREATED', client, f'Client {client.name} created.')
             messages.success(request, f'Client "{client.name}" created.')
             return redirect('client_detail', pk=client.pk)
     else:
@@ -117,7 +130,8 @@ def client_edit(request, pk):
     if request.method == 'POST':
         form = ClientForm(request.POST, instance=client)
         if form.is_valid():
-            form.save()
+            client = form.save()
+            log_activity(request, 'CLIENT_UPDATED', client, f'Client {client.name} updated.')
             messages.success(request, 'Client updated.')
             return redirect('client_detail', pk=client.pk)
     else:
@@ -214,6 +228,7 @@ def product_create(request):
         form = ProductForm(request.POST)
         if form.is_valid():
             product = form.save()
+            log_activity(request, 'PRODUCT_CREATED', product, f'Product {product.code} created.')
             messages.success(request, f'Product "{product.code}" created.')
             return redirect('product_detail', pk=product.pk)
     else:
@@ -227,7 +242,8 @@ def product_edit(request, pk):
     if request.method == 'POST':
         form = ProductForm(request.POST, instance=product)
         if form.is_valid():
-            form.save()
+            product = form.save()
+            log_activity(request, 'PRODUCT_UPDATED', product, f'Product {product.code} updated.')
             messages.success(request, 'Product updated.')
             return redirect('product_detail', pk=product.pk)
     else:
@@ -259,6 +275,7 @@ def purchase_create(request):
         form = PurchaseForm(request.POST)
         if form.is_valid():
             purchase = form.save()
+            log_activity(request, 'PURCHASE_CREATED', purchase, f'Purchase {purchase.invoice_number} recorded.')
             messages.success(request, f'Purchase "{purchase.invoice_number}" recorded. Stock updated.')
             return redirect('purchase_list')
     else:
@@ -301,6 +318,7 @@ def invoice_create(request):
                     invoice.status = 'ISSUED'
                     invoice.save()
                     replace_invoice_lines(invoice, formset)
+                    log_activity(request, 'INVOICE_CREATED', invoice, f'Invoice {invoice.number} created.')
                 messages.success(request, f'Invoice {invoice.number} created.')
                 return redirect('invoice_detail', pk=invoice.pk)
             except ValidationError as exc:
@@ -337,6 +355,7 @@ def invoice_edit(request, pk):
                     invoice = form.save()
                     restock_invoice(invoice)
                     replace_invoice_lines(invoice, formset)
+                    log_activity(request, 'INVOICE_UPDATED', invoice, f'Invoice {invoice.number} updated.')
                 messages.success(request, 'Invoice updated. Stock and sales were resynchronized.')
                 return redirect('invoice_detail', pk=invoice.pk)
             except ValidationError as exc:
@@ -401,6 +420,7 @@ def payment_create(request, invoice_pk):
             payment = form.save(commit=False)
             payment.invoice = invoice
             payment.save()
+            log_activity(request, 'PAYMENT_RECORDED', invoice, f'Payment of {payment.amount} recorded for invoice {invoice.number}.')
             messages.success(request, f'Payment of €{payment.amount} recorded.')
             return redirect('invoice_detail', pk=invoice.pk)
     return redirect('invoice_detail', pk=invoice.pk)
@@ -436,6 +456,9 @@ def product_api(request):
 def reports(request):
     year = int(request.GET.get('year', datetime.date.today().year))
     sales = Sale.objects.filter(date__year=year).select_related('product', 'client')
+
+    sale_years = [date.year for date in Sale.objects.dates('date', 'year')]
+    available_years = sorted(set(sale_years + [year, timezone.now().year]), reverse=True)
 
     monthly = {}
     for s in sales:
@@ -504,4 +527,5 @@ def reports(request):
         'total_cost': total_cost,
         'total_profit': total_profit,
         'chart_data': json.dumps(chart_data),
+        'available_years': available_years,
     })
