@@ -374,9 +374,16 @@ def invoice_pdf(request, pk):
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
-
     except ImportError:
         messages.error(request, 'WeasyPrint is not installed.')
+        return redirect('invoice_detail', pk=pk)
+
+    except OSError:
+        logger.exception("PDF native dependency failure for invoice %s", invoice.pk)
+        messages.error(
+            request,
+            'PDF generation is unavailable. WeasyPrint or its native libraries are missing.',
+        )
         return redirect('invoice_detail', pk=pk)
 
     except Exception as exc:

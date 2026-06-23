@@ -3,6 +3,19 @@
 {% block breadcrumb %}<a href="{% url 'invoice_list' %}">Sąskaitos</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>{{ title }}</h1></div></div>
+{% if form.errors or formset.errors or formset.non_form_errors %}
+<div class="messages">
+  {% for error in form.non_field_errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+  {% for field in form %}{% for error in field.errors %}<div class="alert alert-error">{{ field.label }}: {{ error }}</div>{% endfor %}{% endfor %}
+  {% for error in formset.non_form_errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}
+  {% for lform in formset %}
+    {% with line_number=forloop.counter %}
+      {% for error in lform.non_field_errors %}<div class="alert alert-error">Eilut&#279; {{ line_number }}: {{ error }}</div>{% endfor %}
+      {% for field in lform.visible_fields %}{% for error in field.errors %}<div class="alert alert-error">Eilut&#279; {{ line_number }} &mdash; {{ field.label }}: {{ error }}</div>{% endfor %}{% endfor %}
+    {% endwith %}
+  {% endfor %}
+</div>
+{% endif %}
 <form method="post" id="invoiceForm">
   {% csrf_token %}
   <div class="two-col">
@@ -114,7 +127,7 @@ function normalize(value) {
 
 function splitLabel(text) {
   return (text || '')
-    .split(' — ')
+    .split(' â€” ')
     .map(part => part.trim())
     .filter(Boolean);
 }
@@ -186,9 +199,9 @@ async function fillFromProduct(select, row) {
 
   if (data.description) {
     row.querySelector('[name$=description]').value = data.description;
-    row.querySelector('[name$=unit]').value = data.unit || '';
-    row.querySelector('[name$=unit_price]').value = data.price || '';
-    row.querySelector('[name$=weight_kg]').value = data.weight || '';
+    row.querySelector('[name$=unit]').value = data.unit ?? '';
+    row.querySelector('[name$=unit_price]').value = data.price ?? '';
+    row.querySelector('[name$=weight_kg]').value = data.weight ?? '0';
     updateRow(row);
   }
 }
@@ -327,7 +340,6 @@ document.getElementById('addLine').addEventListener('click', () => {
   attachListeners(tmpl);
 });
 
-updateGrandTotal();
 updateGrandTotal();
 </script>
 {% endblock %}
