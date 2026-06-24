@@ -1,8 +1,7 @@
 {% extends "inventory/base.html" %}
 {% block title %}{{ title }}{% endblock %}
-{% block breadcrumb %}<a href="{% url 'supplier_list' %}">Tiekėjai</a> <span class="sep">›</span> <strong>{{ title }}</strong>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Kontaktai</div><div class="topbar-title"><strong>{{ title }}</strong><span>Tiekėjo duomenys</span></div>{% endblock %}
 {% block content %}
-<div class="page-header"><div><h1>{{ title }}</h1></div></div>
 <div class="card" style="max-width:700px">
   <div class="card-body">
     <form method="post">
@@ -19,7 +18,7 @@
       </div>
       <hr class="divider">
       <div class="flex flex-gap">
-        <button type="submit" class="btn btn-primary">💾 Išsaugoti</button>
+        <button type="submit" class="btn btn-primary">Išsaugoti</button>
         <a href="{% if supplier %}{% url 'supplier_detail' supplier.pk %}{% else %}{% url 'supplier_list' %}{% endif %}" class="btn btn-secondary">Atšaukti</a>
       </div>
     </form>

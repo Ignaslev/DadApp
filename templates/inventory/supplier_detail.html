@@ -1,14 +1,11 @@
 {% extends "inventory/base.html" %}
 {% block title %}{{ supplier.name }}{% endblock %}
-{% block breadcrumb %}<a href="{% url 'supplier_list' %}">Tiekėjai</a> <span class="sep">›</span> <strong>{{ supplier.name }}</strong>{% endblock %}
+{% block breadcrumb %}<div class="topbar-sec">Kontaktai</div><div class="topbar-title"><strong>{{ supplier.name }}</strong><span>Kodas: {{ supplier.code }}</span></div>{% endblock %}
 {% block topbar_actions %}
   <a href="{% url 'supplier_edit' supplier.pk %}" class="btn btn-secondary btn-sm">Redaguoti</a>
   <a href="{% url 'purchase_create' %}" class="btn btn-primary btn-sm">+ Naujas pirkimas</a>
 {% endblock %}
 {% block content %}
-<div class="page-header">
-  <div><h1>{{ supplier.name }}</h1><div class="subtitle">Kodas: {{ supplier.code }}</div></div>
-</div>
 <div class="two-col">
   <div class="card">
     <div class="card-header"><h2>Rekvizitai</h2></div>

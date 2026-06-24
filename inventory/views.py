@@ -121,7 +121,7 @@ def client_create(request):
             return redirect('client_detail', pk=client.pk)
     else:
         form = ClientForm()
-    return render(request, 'inventory/client_form.html', {'form': form, 'title': 'New Client'})
+    return render(request, 'inventory/client_form.html', {'form': form, 'title': 'Naujas klientas'})
 
 
 @login_required
@@ -136,7 +136,7 @@ def client_edit(request, pk):
             return redirect('client_detail', pk=client.pk)
     else:
         form = ClientForm(instance=client)
-    return render(request, 'inventory/client_form.html', {'form': form, 'title': f'Edit {client.name}', 'client': client})
+    return render(request, 'inventory/client_form.html', {'form': form, 'title': f'Redaguoti: {client.name}', 'client': client})
 
 
 @login_required
@@ -172,7 +172,7 @@ def supplier_create(request):
             return redirect('supplier_detail', pk=supplier.pk)
     else:
         form = SupplierForm()
-    return render(request, 'inventory/supplier_form.html', {'form': form, 'title': 'New Supplier'})
+    return render(request, 'inventory/supplier_form.html', {'form': form, 'title': 'Naujas tiekėjas'})
 
 
 @login_required
@@ -188,7 +188,7 @@ def supplier_edit(request, pk):
         form = SupplierForm(instance=supplier)
     return render(request, 'inventory/supplier_form.html', {
         'form': form,
-        'title': f'Edit {supplier.name}',
+        'title': f'Redaguoti: {supplier.name}',
         'supplier': supplier,
     })
 
@@ -233,7 +233,7 @@ def product_create(request):
             return redirect('product_detail', pk=product.pk)
     else:
         form = ProductForm()
-    return render(request, 'inventory/product_form.html', {'form': form, 'title': 'New Product'})
+    return render(request, 'inventory/product_form.html', {'form': form, 'title': 'Nauja prekė'})
 
 
 @login_required
@@ -250,7 +250,7 @@ def product_edit(request, pk):
         form = ProductForm(instance=product)
     return render(request, 'inventory/product_form.html', {
         'form': form,
-        'title': f'Edit {product.code}',
+        'title': f'Redaguoti: {product.code}',
         'product': product,
     })
 
@@ -280,7 +280,7 @@ def purchase_create(request):
             return redirect('purchase_list')
     else:
         form = PurchaseForm()
-    return render(request, 'inventory/purchase_form.html', {'form': form, 'title': 'New Purchase'})
+    return render(request, 'inventory/purchase_form.html', {'form': form, 'title': 'Naujas pirkimas'})
 
 
 @login_required
@@ -329,7 +329,7 @@ def invoice_create(request):
     return render(request, 'inventory/invoice_form.html', {
         'form': form,
         'formset': formset,
-        'title': 'New Invoice',
+        'title': 'Nauja sąskaita',
     })
 
 
@@ -366,7 +366,7 @@ def invoice_edit(request, pk):
     return render(request, 'inventory/invoice_form.html', {
         'form': form,
         'formset': formset,
-        'title': f'Edit Invoice {invoice.number}',
+        'title': f'Redaguoti sąskaitą {invoice.number}',
         'invoice': invoice,
     })
 
@@ -423,6 +423,7 @@ def payment_create(request, invoice_pk):
             log_activity(request, 'PAYMENT_RECORDED', invoice, f'Payment of {payment.amount} recorded for invoice {invoice.number}.')
             messages.success(request, f'Payment of €{payment.amount} recorded.')
             return redirect('invoice_detail', pk=invoice.pk)
+        messages.error(request, 'Mokėjimo suma turi būti didesnė už nulį.')
     return redirect('invoice_detail', pk=invoice.pk)
 
 

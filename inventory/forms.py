@@ -1,7 +1,16 @@
+from decimal import Decimal
+
 from django import forms
+from django.core.validators import MinValueValidator
 from django.forms import inlineformset_factory
 
 from .models import Client, Supplier, Product, Purchase, Invoice, InvoiceLine, Payment
+
+
+def set_minimum(field, value):
+    field.min_value = value
+    field.validators.append(MinValueValidator(value))
+    field.widget.attrs['min'] = str(value)
 
 
 def client_choice_label(client):
@@ -47,6 +56,11 @@ class ProductForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        set_minimum(self.fields['sale_price'], Decimal('0'))
+        set_minimum(self.fields['weight_kg'], Decimal('0'))
+
 
 class PurchaseForm(forms.ModelForm):
     class Meta:
@@ -69,6 +83,9 @@ class PurchaseForm(forms.ModelForm):
         self.fields['product'].empty_label = '— Pasirinkite prekę (nebūtina) —'
         self.fields['product'].required = False
         self.fields['product'].label_from_instance = product_choice_label
+        set_minimum(self.fields['quantity'], Decimal('0.0001'))
+        set_minimum(self.fields['unit_price'], Decimal('0'))
+        set_minimum(self.fields['vat_rate'], Decimal('0'))
 
 
 class InvoiceForm(forms.ModelForm):
@@ -106,6 +123,10 @@ class InvoiceLineForm(forms.ModelForm):
         self.fields['product'].empty_label = '— Pasirinkite prekę —'
         self.fields['product'].required = False
         self.fields['product'].label_from_instance = product_choice_label
+        set_minimum(self.fields['quantity'], Decimal('0.0001'))
+        set_minimum(self.fields['unit_price'], Decimal('0'))
+        set_minimum(self.fields['vat_rate'], Decimal('0'))
+        set_minimum(self.fields['weight_kg'], Decimal('0'))
 
 
 InvoiceLineFormSet = inlineformset_factory(
@@ -126,6 +147,10 @@ class PaymentForm(forms.ModelForm):
             'date': forms.DateInput(attrs={'type': 'date'}),
             'notes': forms.Textarea(attrs={'rows': 2}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        set_minimum(self.fields['amount'], Decimal('0.01'))
 
 
 class ProductStockAdjustForm(forms.Form):

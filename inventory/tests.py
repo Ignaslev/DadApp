@@ -9,8 +9,8 @@ from django.db import transaction
 from django.test import TestCase
 from django.urls import reverse
 
-from .forms import InvoiceLineFormSet
-from .models import ActivityLog, Client, Invoice, Product, Sale
+from .forms import InvoiceLineFormSet, PurchaseForm
+from .models import ActivityLog, Client, Invoice, Payment, Product, Purchase, Sale, Supplier
 from .services import replace_invoice_lines, restock_invoice
 
 
@@ -86,6 +86,43 @@ class BusinessFlowTests(TestCase):
         self.assertEqual(self.product.quantity, Decimal('3.0000'))
         self.assertEqual(line.quantity, Decimal('2.0000'))
 
+    def test_invoice_edit_replaces_stock_quantity_correctly(self):
+        self.client.post(reverse('invoice_create'), self.invoice_payload())
+        invoice = Invoice.objects.get(number='TEST-INV-001')
+        line = invoice.lines.get()
+        payload = self.invoice_payload(quantity='1')
+        payload['lines-INITIAL_FORMS'] = '1'
+        payload['lines-0-id'] = str(line.pk)
+
+        response = self.client.post(reverse('invoice_edit', args=[invoice.pk]), payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, Decimal('4.0000'))
+        self.assertEqual(invoice.lines.get().quantity, Decimal('1.0000'))
+
+    def test_duplicate_product_lines_reduce_stock_cumulatively(self):
+        payload = self.invoice_payload(quantity='1')
+        payload.update({
+            'lines-TOTAL_FORMS': '2',
+            'lines-1-product': str(self.product.pk),
+            'lines-1-description': 'Test Product second line',
+            'lines-1-unit': 'vnt',
+            'lines-1-quantity': '1',
+            'lines-1-unit_price': '15',
+            'lines-1-vat_rate': '21',
+            'lines-1-weight_kg': '0',
+        })
+
+        response = self.client.post(reverse('invoice_create'), payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, Decimal('3.0000'))
+        invoice = Invoice.objects.get(number='TEST-INV-001')
+        self.assertEqual(invoice.lines.count(), 2)
+        self.assertEqual(Sale.objects.filter(invoice=invoice).count(), 2)
+
     def test_payment_updates_status_and_writes_activity(self):
         self.client.post(reverse('invoice_create'), self.invoice_payload())
         invoice = Invoice.objects.get(number='TEST-INV-001')
@@ -99,6 +136,45 @@ class BusinessFlowTests(TestCase):
         invoice.refresh_from_db()
         self.assertEqual(invoice.status, 'PARTIAL')
         self.assertTrue(ActivityLog.objects.filter(action='PAYMENT_RECORDED', object_id=str(invoice.pk)).exists())
+
+    def test_negative_purchase_is_rejected_without_changing_stock(self):
+        supplier = Supplier.objects.create(name='Test Supplier', code='TEST-SUPPLIER')
+        form = PurchaseForm(data={
+            'invoice_number': 'TEST-PURCHASE',
+            'invoice_date': '2026-06-23',
+            'due_date': '',
+            'supplier': str(supplier.pk),
+            'purchase_type': 'Prekės',
+            'product': str(self.product.pk),
+            'description': 'Test Product',
+            'unit': 'vnt',
+            'quantity': '-1',
+            'unit_price': '10',
+            'vat_rate': '21',
+            'notes': '',
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('quantity', form.errors)
+        self.assertFalse(Purchase.objects.filter(invoice_number='TEST-PURCHASE').exists())
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, Decimal('5.0000'))
+
+    def test_negative_payment_is_rejected(self):
+        self.client.post(reverse('invoice_create'), self.invoice_payload())
+        invoice = Invoice.objects.get(number='TEST-INV-001')
+
+        response = self.client.post(reverse('payment_create', args=[invoice.pk]), {
+            'date': '2026-06-23',
+            'amount': '-10.00',
+            'method': 'TRANSFER',
+            'notes': '',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Payment.objects.filter(invoice=invoice).exists())
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.status, 'ISSUED')
 
 
 class BackupCommandTests(TestCase):

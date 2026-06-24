@@ -2,6 +2,7 @@
 {% block title %}{{ title }}{% endblock %}
 {% block breadcrumb %}<div class="topbar-sec">Sandėlis</div><div class="topbar-title"><strong>{{ title }}</strong><span>Pirkimo įrašas</span></div>{% endblock %}
 {% block content %}
+{% if form.errors %}<div class="messages">{% for error in form.non_field_errors %}<div class="alert alert-error">{{ error }}</div>{% endfor %}{% for field in form %}{% for error in field.errors %}<div class="alert alert-error">{{ field.label }}: {{ error }}</div>{% endfor %}{% endfor %}</div>{% endif %}
 <div class="card" style="max-width:900px"><div class="card-body"><form method="post" id="purchaseForm">{% csrf_token %}
 <div class="form-grid">
 <div class="field"><label>Sąskaitos numeris *</label>{{ form.invoice_number }}</div><div class="field"><label>Tiekėjas *</label>{{ form.supplier }}</div><div class="field"><label>Sąskaitos data *</label>{{ form.invoice_date }}</div><div class="field"><label>Apmokėti iki</label>{{ form.due_date }}</div><div class="field"><label>Tipas</label>{{ form.purchase_type }}</div><div class="field"><label>Susieti su preke</label>{{ form.product }}</div><div class="field form-full"><label>Aprašymas *</label>{{ form.description }}</div><div class="field"><label>Mat. vienetas</label>{{ form.unit }}</div><div class="field"><label>Kiekis *</label>{{ form.quantity }}</div><div class="field"><label>Kaina/vnt (€ be PVM) *</label>{{ form.unit_price }}</div><div class="field"><label>PVM tarifas (%)</label>{{ form.vat_rate }}</div><div class="field form-full"><label>Komentaras</label>{{ form.notes }}</div>

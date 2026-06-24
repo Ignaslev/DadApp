@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 
-from .models import InvoiceLine, Sale
+from .models import InvoiceLine, Product, Sale
 
 
 class InvoiceStockError(ValidationError):
@@ -74,6 +74,20 @@ def restock_invoice(invoice):
 
 def replace_invoice_lines(invoice, formset):
     line_specs = _normalize_line_specs(formset)
+
+    # ModelChoiceField instances are loaded before edit-time restocking happens.
+    # Replace them with one fresh shared object per product so stock changes are
+    # based on the current database quantity and accumulate across duplicate lines.
+    product_ids = {
+        spec['product'].pk
+        for spec in line_specs
+        if spec['product']
+    }
+    products = Product.objects.in_bulk(product_ids)
+    for spec in line_specs:
+        if spec['product']:
+            spec['product'] = products[spec['product'].pk]
+
     validate_invoice_stock(line_specs)
 
     invoice.sales.all().delete()
